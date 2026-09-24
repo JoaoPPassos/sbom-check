@@ -20,3 +20,5 @@ dist
 *.iml
 *.pkl
 *.yaml
+src/sbom_check/_version.py
+!src/spdx_validator/data/*.json
