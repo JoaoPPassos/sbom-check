@@ -81,6 +81,8 @@ class SbomCheckResult(BaseModel):
     summary: ValidationSummary = Field(default_factory=ValidationSummary)
     profile_name: str | None = None
     file_path: str | None = None
+    document_format: str = "SPDX"
+    spec_version: str | None = "2.3"
 
     @classmethod
     def combine(
