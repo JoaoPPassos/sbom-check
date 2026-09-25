@@ -19,6 +19,22 @@ class ValidationSeverity(str, Enum):
     INFO = "INFO"
 
 
+class DocumentFormat(str, Enum):
+    """Supported SBOM document formats."""
+
+    SPDX = "SPDX"
+    CYCLONEDX = "CycloneDX"
+    UNKNOWN = "unknown"
+
+
+class ProfileStatus(str, Enum):
+    """Applicability and outcome of profile validation."""
+
+    PASSED = "passed"
+    FAILED = "failed"
+    NOT_APPLICABLE = "not_applicable"
+
+
 class ValidationMessage(BaseModel):
     """A single validation message with context and metadata."""
 
@@ -77,20 +93,24 @@ class SbomCheckResult(BaseModel):
     overall_valid: bool
     spdx_valid: bool
     profile_valid: bool
+    core_valid: bool = False
+    profile_status: ProfileStatus = ProfileStatus.NOT_APPLICABLE
     messages: list[ValidationMessage] = Field(default_factory=list)
     summary: ValidationSummary = Field(default_factory=ValidationSummary)
     profile_name: str | None = None
     file_path: str | None = None
-    document_format: str = "SPDX"
-    spec_version: str | None = "2.3"
+    document_format: DocumentFormat = DocumentFormat.UNKNOWN
+    spec_version: str | None = None
 
     @classmethod
-    def combine(
+    def combine(  # pylint: disable=too-many-positional-arguments  # noqa: PLR0917,RUF100
         cls,
         spdx_result: Any,  # spdx_validator.ValidationResult
         profile_result: SbomCheckResult | None = None,
         profile_name: str | None = None,
         file_path: str | None = None,
+        document_format: DocumentFormat = DocumentFormat.SPDX,
+        spec_version: str | None = "2.3",
     ) -> SbomCheckResult:
         """Combine SPDX validation result with profile validation result."""
         # Convert and collect all messages
@@ -104,16 +124,27 @@ class SbomCheckResult(BaseModel):
         # Determine validity
         spdx_valid = getattr(spdx_result, "is_valid", False)
         profile_valid = profile_result.overall_valid if profile_result else True
+        profile_status = (
+            ProfileStatus.PASSED
+            if profile_result and profile_valid
+            else ProfileStatus.FAILED
+            if profile_result
+            else ProfileStatus.NOT_APPLICABLE
+        )
         overall_valid = spdx_valid and profile_valid and summary.errors == 0
 
         return cls(
             overall_valid=overall_valid,
             spdx_valid=spdx_valid,
             profile_valid=profile_valid,
+            core_valid=spdx_valid,
+            profile_status=profile_status,
             messages=messages,
             summary=summary,
             profile_name=profile_name,
             file_path=file_path,
+            document_format=document_format,
+            spec_version=spec_version,
         )
 
     @classmethod

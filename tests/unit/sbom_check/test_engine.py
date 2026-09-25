@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 from cyclone_validator.engine import CycloneDXValidationEngine
 from sbom_check.config.loader import ConfigLoader
 from sbom_check.engine import SbomCheckEngine
-from sbom_check.models import SbomCheckResult, ValidationSeverity
+from sbom_check.models import ProfileStatus, SbomCheckResult, ValidationSeverity
 
 
 def test_engine_initialization():
@@ -441,6 +441,11 @@ def test_cyclonedx_schema_paths_are_preserved_in_combined_result():
     )
 
     assert not result.overall_valid
+    assert result.core_valid is False
+    assert result.profile_status is ProfileStatus.NOT_APPLICABLE
+    assert result.document_format == "CycloneDX"
+    assert result.spec_version == "1.7"
+    assert result.profile_valid is True
     assert {message.field_path for message in result.messages} >= {
         "$.components[0].type",
         "$.components[0].name",

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sbom_check.config.loader import ConfigLoader
-from sbom_check.models import SbomCheckResult, ValidationSeverity
+from sbom_check.models import DocumentFormat, SbomCheckResult, ValidationSeverity
 from spdx_validator.engine import ValidationEngine
 
 if TYPE_CHECKING:
@@ -148,6 +148,10 @@ class SbomCheckEngine:
             profile_result=profile_result,
             profile_name=self.config.metadata.name,
             file_path=file_path,
+            document_format=(
+                DocumentFormat.SPDX if self._is_spdx_engine else DocumentFormat.CYCLONEDX
+            ),
+            spec_version=("2.3" if self._is_spdx_engine else spdx_data.get("specVersion")),
         )
 
         return combined_result
