@@ -27,7 +27,7 @@ except ImportError:
 from sbom_check.config.loader import ConfigLoader
 from sbom_check.detection import DetectedDocument, detect_document
 from sbom_check.engine import SbomCheckEngine
-from sbom_check.models import ValidationSeverity
+from sbom_check.models import ProfileStatus, ValidationSeverity
 from spdx_validator.engine import ValidationEngine
 
 console = Console()
@@ -141,6 +141,8 @@ def output_json_multiple(results: list[tuple[Path, Any]]) -> None:
                 "overall_valid": result.overall_valid,
                 "document_format": result.document_format,
                 "spec_version": result.spec_version,
+                "core_valid": _result_core_valid(result),
+                "profile_status": _result_profile_status(result).value,
                 "spdx_valid": result.spdx_valid,
                 "profile_valid": result.profile_valid,
                 "profile_name": result.profile_name,
@@ -401,6 +403,22 @@ def _validate_config_file(loader: ConfigLoader, config_path: str) -> None:
         sys.exit(3)
 
 
+def _result_core_valid(result: Any) -> bool:
+    """Read format-neutral core status with legacy-result compatibility."""
+    value = getattr(result, "core_valid", None)
+    return value if isinstance(value, bool) else bool(result.spdx_valid)
+
+
+def _result_profile_status(result: Any) -> ProfileStatus:
+    """Read explicit profile status with legacy-result compatibility."""
+    value = getattr(result, "profile_status", None)
+    if isinstance(value, ProfileStatus):
+        return value
+    if getattr(result, "document_format", "SPDX") == "SPDX":
+        return ProfileStatus.PASSED if bool(result.profile_valid) else ProfileStatus.FAILED
+    return ProfileStatus.NOT_APPLICABLE
+
+
 def _print_text_result(result: Any, file_path: str) -> None:
     """Print validation result in text format."""
     console.print(f"\n[bold]Validation Results for: {file_path}[/bold]")
@@ -412,19 +430,20 @@ def _print_text_result(result: Any, file_path: str) -> None:
     else:
         console.print("[red]❌ Overall Result: FAILED[/red]")
 
-    format_name = result.document_format
+    format_name = getattr(result, "document_format", "SPDX")
     specification = (
         f" {result.spec_version}" if result.spec_version else ""
     )
     core_label = f"{format_name}{specification} Validation"
-    if result.spdx_valid:
+    if _result_core_valid(result):
         console.print(f"[green]✅ {core_label}: PASSED[/green]")
     else:
         console.print(f"[red]❌ {core_label}: FAILED[/red]")
 
-    if format_name != "SPDX":
+    profile_status = _result_profile_status(result)
+    if profile_status is ProfileStatus.NOT_APPLICABLE:
         console.print("[blue]Info: Profile Validation: NOT APPLICABLE[/blue]")
-    elif result.profile_valid:
+    elif result.profile_status is ProfileStatus.PASSED:
         console.print("[green]✅ Profile Validation: PASSED[/green]")
     else:
         console.print("[red]❌ Profile Validation: FAILED[/red]")
@@ -487,6 +506,8 @@ def _print_json_result(result: Any) -> None:
         "overall_valid": result.overall_valid,
         "document_format": result.document_format,
         "spec_version": result.spec_version,
+        "core_valid": _result_core_valid(result),
+        "profile_status": _result_profile_status(result).value,
         "spdx_valid": result.spdx_valid,
         "profile_valid": result.profile_valid,
         "profile_name": result.profile_name,
