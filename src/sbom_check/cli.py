@@ -206,8 +206,8 @@ def output_json_multiple(results: list[tuple[Path, Any]]) -> None:
 )
 @click.option(
     "--pattern",
-    default="*.spdx.json",
-    help="File pattern to match when scanning directories (default: *.spdx.json)",
+    default="*.json",
+    help="File pattern to match when scanning directories (default: *.json)",
 )
 @click.option(
     "--jobs",
@@ -244,7 +244,7 @@ def main(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-m
     generate_config: bool,
     validate_config: str | None,
 ) -> None:
-    """Validate SPDX 2.3 SBOM documents with configurable requirements.
+    """Validate SPDX and CycloneDX JSON SBOM documents.
 
     PATHS can be individual files or directories. When directories are provided,
     they will be scanned for SBOM files matching the specified pattern.
