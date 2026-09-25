@@ -6,16 +6,16 @@ SPDX-License-Identifier: BSD-3-Clause
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
 
-A comprehensive SPDX 2.3 SBOM validator with configurable additional requirements for completeness validation.
+A multi-format SBOM validator supporting SPDX 2.3 and CycloneDX JSON documents, with configurable SPDX completeness requirements.
 
 ## Features
 
-- **SPDX 2.3 Compliance**: Integrated spdx-validator for core specification validation
+- **Multi-format validation**: Automatic detection and validation of SPDX 2.3 and CycloneDX JSON 1.3–1.7 documents
 - **Dual CLI Tools**: Both `sbom-check` and `spdx-validate` commands available
 - **Configurable Requirements**: YAML-based configuration system with inheritance
 - **Multiple Profiles**: Built-in profiles for different use cases (basic, default, automotive, etc.)
 - **Rich Reporting**: Text and JSON output formats with detailed error messages
-- **Schema Validation**: JSON Schema validation against SPDX specification
+- **Schema Validation**: JSON Schema validation against the declared document format and version
 - **Extensible**: Plugin system for custom validation rules
 
 ## Quick Start
