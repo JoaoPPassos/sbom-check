@@ -450,3 +450,27 @@ def test_cyclonedx_schema_paths_are_preserved_in_combined_result():
         "$.components[0].type",
         "$.components[0].name",
     }
+
+
+def test_engine_auto_detects_cyclonedx_without_explicit_validator_class():
+    """Direct engine callers receive automatic format dispatch."""
+    result = SbomCheckEngine().validate_dict(
+        {"bomFormat": "CycloneDX", "specVersion": "1.7"}
+    )
+
+    assert result.overall_valid
+    assert result.document_format == "CycloneDX"
+    assert result.spec_version == "1.7"
+    assert result.core_valid is True
+    assert result.profile_status is ProfileStatus.NOT_APPLICABLE
+
+
+def test_engine_returns_structured_result_for_unsupported_input():
+    """Unsupported documents never fall through to SPDX validation."""
+    result = SbomCheckEngine().validate_dict({"format": "unknown"})
+
+    assert not result.overall_valid
+    assert result.document_format == "unknown"
+    assert result.core_valid is False
+    assert result.profile_status is ProfileStatus.NOT_APPLICABLE
+    assert result.messages[0].rule_id == "unsupported_format"
