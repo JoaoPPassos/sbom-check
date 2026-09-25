@@ -25,7 +25,7 @@ except ImportError:
     __version__ = "dev"
 
 from sbom_check.config.loader import ConfigLoader
-from sbom_check.detection import detect_document
+from sbom_check.detection import DetectedDocument, detect_document
 from sbom_check.engine import SbomCheckEngine
 from sbom_check.models import ValidationSeverity
 from spdx_validator.engine import ValidationEngine
@@ -69,21 +69,35 @@ def validate_single_file(
         sbom_config = loader.load_profile(profile)
 
     # Detect the document format before selecting the validation engine.
-    validator_class = _detect_validator_class(file_path)
+    detected = _detect_document(file_path)
+    validator_class = detected.validator_class if detected else ValidationEngine
     engine = SbomCheckEngine(sbom_config, validator_class=validator_class)
     result = engine.validate_file(file_path)
+    _set_result_document_metadata(result, detected)
     return file_path, result
 
 
-def _detect_validator_class(file_path: Path) -> type[Any]:
-    """Open a file and return the validator engine class for its format."""
+def _detect_document(file_path: Path) -> DetectedDocument | None:
+    """Open a file and detect its format before engine selection."""
     try:
         with file_path.open(encoding="utf-8") as file_handle:
             document = json.load(file_handle)
     except json.JSONDecodeError:
         # Preserve the engine's standard invalid-JSON result.
-        return ValidationEngine
-    return detect_document(document).validator_class
+        return None
+    return detect_document(document)
+
+
+def _set_result_document_metadata(
+    result: Any, detected: DetectedDocument | None
+) -> None:
+    """Attach detected format metadata to a validation result."""
+    if detected is None:
+        result.document_format = "unknown"
+        result.spec_version = None
+    else:
+        result.document_format = detected.format.value
+        result.spec_version = detected.spec_version
 
 
 def output_text_multiple(results: list[tuple[Path, Any]]) -> None:
@@ -125,6 +139,8 @@ def output_json_multiple(results: list[tuple[Path, Any]]) -> None:
             {
                 "file": str(file_path),
                 "overall_valid": result.overall_valid,
+                "document_format": result.document_format,
+                "spec_version": result.spec_version,
                 "spdx_valid": result.spdx_valid,
                 "profile_valid": result.profile_valid,
                 "profile_name": result.profile_name,
@@ -276,11 +292,13 @@ def main(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-m
                 sbom_config = loader.load_profile(profile)
 
             # Detect the document format before selecting the validation engine.
-            validator_class = _detect_validator_class(file_path)
+            detected = _detect_document(file_path)
+            validator_class = detected.validator_class if detected else ValidationEngine
             engine = SbomCheckEngine(
                 sbom_config, validator_class=validator_class
             )
             result = engine.validate_file(file_path)
+            _set_result_document_metadata(result, detected)
             results.append((file_path, result))
 
             if not result.overall_valid:
@@ -394,14 +412,19 @@ def _print_text_result(result: Any, file_path: str) -> None:
     else:
         console.print("[red]❌ Overall Result: FAILED[/red]")
 
-    # SPDX validation status
+    format_name = result.document_format
+    specification = (
+        f" {result.spec_version}" if result.spec_version else ""
+    )
+    core_label = f"{format_name}{specification} Validation"
     if result.spdx_valid:
-        console.print("[green]✅ SPDX 2.3 Validation: PASSED[/green]")
+        console.print(f"[green]✅ {core_label}: PASSED[/green]")
     else:
-        console.print("[red]❌ SPDX 2.3 Validation: FAILED[/red]")
+        console.print(f"[red]❌ {core_label}: FAILED[/red]")
 
-    # Profile validation status
-    if result.profile_valid:
+    if format_name != "SPDX":
+        console.print("[blue]Info: Profile Validation: NOT APPLICABLE[/blue]")
+    elif result.profile_valid:
         console.print("[green]✅ Profile Validation: PASSED[/green]")
     else:
         console.print("[red]❌ Profile Validation: FAILED[/red]")
@@ -462,6 +485,8 @@ def _print_json_result(result: Any) -> None:
     # Convert result to JSON-serializable format
     json_result = {
         "overall_valid": result.overall_valid,
+        "document_format": result.document_format,
+        "spec_version": result.spec_version,
         "spdx_valid": result.spdx_valid,
         "profile_valid": result.profile_valid,
         "profile_name": result.profile_name,
