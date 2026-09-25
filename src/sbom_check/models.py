@@ -139,7 +139,7 @@ class SbomCheckResult(BaseModel):
                     severity=severity_level,
                     message=spdx_msg.message,
                     rule_id=getattr(spdx_msg, "rule_id", None),
-                    field_path=getattr(spdx_msg, "path", None),
+                    field_path=getattr(spdx_msg, "field_path", getattr(spdx_msg, "path", None)),
                 )
                 messages.append(validation_msg)
 
