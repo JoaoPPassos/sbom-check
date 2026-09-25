@@ -18,15 +18,17 @@ from typing import Any
 import click
 from rich.console import Console
 
-from sbom_check.config.loader import ConfigLoader
-from sbom_check.engine import SbomCheckEngine
-from sbom_check.models import ValidationSeverity
-
 try:
     from sbom_check._version import version as __version__
 except ImportError:
     # Fallback for development/editable installs
     __version__ = "dev"
+
+from sbom_check.config.loader import ConfigLoader
+from sbom_check.detection import detect_document
+from sbom_check.engine import SbomCheckEngine
+from sbom_check.models import ValidationSeverity
+from spdx_validator.engine import ValidationEngine
 
 console = Console()
 
@@ -66,10 +68,22 @@ def validate_single_file(
     else:
         sbom_config = loader.load_profile(profile)
 
-    # Initialize engine and validate
-    engine = SbomCheckEngine(sbom_config)
+    # Detect the document format before selecting the validation engine.
+    validator_class = _detect_validator_class(file_path)
+    engine = SbomCheckEngine(sbom_config, validator_class=validator_class)
     result = engine.validate_file(file_path)
     return file_path, result
+
+
+def _detect_validator_class(file_path: Path) -> type[Any]:
+    """Open a file and return the validator engine class for its format."""
+    try:
+        with file_path.open(encoding="utf-8") as file_handle:
+            document = json.load(file_handle)
+    except json.JSONDecodeError:
+        # Preserve the engine's standard invalid-JSON result.
+        return ValidationEngine
+    return detect_document(document).validator_class
 
 
 def output_text_multiple(results: list[tuple[Path, Any]]) -> None:
@@ -200,7 +214,7 @@ def output_json_multiple(results: list[tuple[Path, Any]]) -> None:
     help="Validate a configuration file",
 )
 @click.version_option(version=__version__, prog_name="sbom-check")
-def main(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-many-statements  # noqa: PLR0917
+def main(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-many-statements  # noqa: PLR0917,RUF100
     paths: tuple[str, ...],
     profile: str,
     config: str | None,
@@ -261,8 +275,11 @@ def main(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-m
             else:
                 sbom_config = loader.load_profile(profile)
 
-            # Initialize engine and validate
-            engine = SbomCheckEngine(sbom_config)
+            # Detect the document format before selecting the validation engine.
+            validator_class = _detect_validator_class(file_path)
+            engine = SbomCheckEngine(
+                sbom_config, validator_class=validator_class
+            )
             result = engine.validate_file(file_path)
             results.append((file_path, result))
 

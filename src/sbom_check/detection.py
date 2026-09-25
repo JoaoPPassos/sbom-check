@@ -7,7 +7,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from cyclone_validator.engine import CycloneDXValidationEngine
+from spdx_validator.engine import ValidationEngine
+
+if TYPE_CHECKING:
+    from sbom_check.validator_engine import ValidatorEngine
 
 
 class DocumentFormat(str, Enum):
@@ -29,6 +35,7 @@ class DetectedDocument:
 
     format: DocumentFormat
     spec_version: str | None
+    validator_class: type[ValidatorEngine]
 
 
 class UnsupportedDocumentError(ValueError):
@@ -96,7 +103,7 @@ def _detect_spdx(data: dict[str, Any]) -> DetectedDocument:
             rule_id="unsupported_version",
         )
 
-    return DetectedDocument(DocumentFormat.SPDX, "2.3")
+    return DetectedDocument(DocumentFormat.SPDX, "2.3", ValidationEngine)
 
 
 def _detect_cyclonedx(data: dict[str, Any]) -> DetectedDocument:
@@ -124,7 +131,7 @@ def _detect_cyclonedx(data: dict[str, Any]) -> DetectedDocument:
             rule_id="unsupported_version",
         )
 
-    return DetectedDocument(DocumentFormat.CYCLONEDX, version)
+    return DetectedDocument(DocumentFormat.CYCLONEDX, version, CycloneDXValidationEngine)
 
 
 def _is_older_cyclonedx_version(version: str) -> bool:

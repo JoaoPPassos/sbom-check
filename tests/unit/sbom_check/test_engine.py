@@ -6,6 +6,7 @@
 import json
 from unittest.mock import Mock, patch
 
+from cyclone_validator.engine import CycloneDXValidationEngine
 from sbom_check.config.loader import ConfigLoader
 from sbom_check.engine import SbomCheckEngine
 from sbom_check.models import SbomCheckResult, ValidationSeverity
@@ -416,3 +417,11 @@ def test_document_namespace_fragment_prohibited():
     assert len(fragment_errors) > 0, (
         "Fragment identifiers should be prohibited in documentNamespace"
     )
+
+
+def test_engine_instantiates_selected_validator_class():
+    """Test that the selected validator class is instantiated as engine."""
+    config = ConfigLoader().load_profile("default")
+    engine = SbomCheckEngine(config, validator_class=CycloneDXValidationEngine)
+
+    assert isinstance(engine.engine, CycloneDXValidationEngine)
