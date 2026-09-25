@@ -6,22 +6,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from cyclone_validator.engine import CycloneDXValidationEngine
+from sbom_check.models import DocumentFormat
 from spdx_validator.engine import ValidationEngine
 
 if TYPE_CHECKING:
     from sbom_check.validator_engine import ValidatorEngine
-
-
-class DocumentFormat(str, Enum):
-    """SBOM formats recognized by the application."""
-
-    SPDX = "SPDX"
-    CYCLONEDX = "CycloneDX"
-    UNKNOWN = "unknown"
 
 
 SUPPORTED_CYCLONEDX_VERSIONS = frozenset({"1.3", "1.4", "1.5", "1.6", "1.7"})
