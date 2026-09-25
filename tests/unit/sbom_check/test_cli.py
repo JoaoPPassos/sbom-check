@@ -5,11 +5,12 @@
 
 import json
 from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
-from sbom_check.cli import main
+from sbom_check.cli import _print_json_result, _print_text_result, main
 
 
 def test_cli_help():
@@ -833,3 +834,51 @@ def test_cli_backward_compatibility_single_file(tmp_path):
         assert test_file.name in result.output
         # Should NOT show multiple-file summary format
         assert "Validated 1 files:" not in result.output
+
+
+def _format_result(document_format: str, spec_version: str) -> SimpleNamespace:
+    """Create a minimal result for output rendering tests."""
+    return SimpleNamespace(
+        overall_valid=True,
+        document_format=document_format,
+        spec_version=spec_version,
+        spdx_valid=True,
+        profile_valid=True,
+        profile_name=None,
+        file_path=None,
+        messages=[],
+        summary=SimpleNamespace(
+            errors=0,
+            warnings=0,
+            info=0,
+            total_rules=0,
+            passed_rules=0,
+            failed_rules=0,
+        ),
+        get_messages_by_severity=lambda severity: [],
+    )
+
+
+def test_text_output_uses_detected_format_and_marks_profile_not_applicable():
+    """CycloneDX output must not use SPDX labels or profile status."""
+    result = _format_result("CycloneDX", "1.7")
+
+    with patch("sbom_check.cli.console") as mocked_console:
+        _print_text_result(result, "bom.json")
+
+    output = "\n".join(str(call.args[0]) for call in mocked_console.print.call_args_list)
+    assert "CycloneDX 1.7 Validation: PASSED" in output
+    assert "Profile Validation: NOT APPLICABLE" in output
+    assert "SPDX 2.3 Validation" not in output
+
+
+def test_json_output_includes_detected_format_and_specification():
+    """JSON output exposes format-neutral metadata."""
+    result = _format_result("CycloneDX", "1.7")
+
+    with patch("sbom_check.cli.console") as mocked_console:
+        _print_json_result(result)
+
+    output = mocked_console.print.call_args.args[0]
+    assert '"document_format": "CycloneDX"' in output
+    assert '"spec_version": "1.7"' in output
