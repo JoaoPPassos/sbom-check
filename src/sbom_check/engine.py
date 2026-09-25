@@ -10,7 +10,15 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sbom_check.config.loader import ConfigLoader
-from sbom_check.models import DocumentFormat, SbomCheckResult, ValidationSeverity
+from sbom_check.detection import UnsupportedDocumentError, detect_document
+from sbom_check.models import (
+    DocumentFormat,
+    ProfileStatus,
+    SbomCheckResult,
+    ValidationMessage,
+    ValidationSeverity,
+    ValidationSummary,
+)
 from spdx_validator.engine import ValidationEngine
 
 if TYPE_CHECKING:
@@ -39,11 +47,12 @@ class SbomCheckEngine:
             config = loader.load_profile(profile_name)
 
         self.config = config
+        self._validator_class = validator_class
 
-        # Use SPDX validation by default for backwards compatibility.
+        # Use SPDX validation by default until document detection selects another engine.
         selected_validator = validator_class or ValidationEngine
         self.engine = selected_validator()
-        self._is_spdx_engine = validator_class is None or selected_validator is ValidationEngine
+        self._is_spdx_engine = selected_validator is ValidationEngine
 
     def validate_file(self, file_path: Path | str) -> SbomCheckResult:
         """Validate an SPDX document from file.
@@ -132,7 +141,18 @@ class SbomCheckEngine:
         Returns:
             Complete validation result
         """
-        # Run SPDX validation first
+        detected = None
+        if self._validator_class is None:
+            try:
+                detected = detect_document(spdx_data)
+            except UnsupportedDocumentError as error:
+                return self._unsupported_result(error)
+
+            if detected.validator_class is not type(self.engine):
+                self.engine = detected.validator_class()
+            self._is_spdx_engine = detected.format is DocumentFormat.SPDX
+
+        # Run the selected format engine.
         spdx_result = self.engine.validate_dict(spdx_data)
 
         # The completeness profile is SPDX-specific.
@@ -149,12 +169,45 @@ class SbomCheckEngine:
             profile_name=self.config.metadata.name,
             file_path=file_path,
             document_format=(
-                DocumentFormat.SPDX if self._is_spdx_engine else DocumentFormat.CYCLONEDX
+                detected.format
+                if detected
+                else DocumentFormat.SPDX
+                if self._is_spdx_engine
+                else DocumentFormat.CYCLONEDX
             ),
-            spec_version=("2.3" if self._is_spdx_engine else spdx_data.get("specVersion")),
+            spec_version=(
+                detected.spec_version
+                if detected
+                else "2.3"
+                if self._is_spdx_engine
+                else spdx_data.get("specVersion")
+            ),
         )
 
         return combined_result
+
+    def _unsupported_result(
+        self, error: UnsupportedDocumentError
+    ) -> SbomCheckResult:
+        """Create a structured result for unsupported input."""
+        return SbomCheckResult(
+            overall_valid=False,
+            spdx_valid=False,
+            profile_valid=True,
+            core_valid=False,
+            profile_status=ProfileStatus.NOT_APPLICABLE,
+            messages=[
+                ValidationMessage(
+                    severity=ValidationSeverity.ERROR,
+                    message=str(error),
+                    rule_id=error.rule_id,
+                )
+            ],
+            summary=ValidationSummary(errors=1, failed_rules=1),
+            profile_name=self.config.metadata.name,
+            document_format=DocumentFormat.UNKNOWN,
+            spec_version=None,
+        )
 
     def _validate_profile_requirements(
         self, spdx_data: dict[str, Any]
