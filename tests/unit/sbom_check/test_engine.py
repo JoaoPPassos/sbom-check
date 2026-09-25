@@ -425,3 +425,23 @@ def test_engine_instantiates_selected_validator_class():
     engine = SbomCheckEngine(config, validator_class=CycloneDXValidationEngine)
 
     assert isinstance(engine.engine, CycloneDXValidationEngine)
+
+
+def test_cyclonedx_schema_paths_are_preserved_in_combined_result():
+    """CycloneDX JSON paths survive SbomCheckResult conversion."""
+    engine = SbomCheckEngine(
+        validator_class=CycloneDXValidationEngine,
+    )
+    result = engine.validate_dict(
+        {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.7",
+            "components": [{"type": "invalid", "name": 123}],
+        }
+    )
+
+    assert not result.overall_valid
+    assert {message.field_path for message in result.messages} >= {
+        "$.components[0].type",
+        "$.components[0].name",
+    }
