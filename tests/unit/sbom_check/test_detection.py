@@ -2,17 +2,20 @@
 
 import pytest
 
+from cyclone_validator.engine import CycloneDXValidationEngine
 from sbom_check.detection import (
     DocumentFormat,
     UnsupportedDocumentError,
     detect_document,
 )
+from spdx_validator.engine import ValidationEngine
 
 
 def test_detect_spdx_23() -> None:
     detected = detect_document({"spdxVersion": "SPDX-2.3"})
     assert detected.format is DocumentFormat.SPDX
     assert detected.spec_version == "2.3"
+    assert detected.validator_class is ValidationEngine
 
 
 @pytest.mark.parametrize("version", ["1.3", "1.4", "1.5", "1.6", "1.7"])
@@ -20,6 +23,7 @@ def test_detect_supported_cyclonedx_versions(version: str) -> None:
     detected = detect_document({"bomFormat": "CycloneDX", "specVersion": version})
     assert detected.format is DocumentFormat.CYCLONEDX
     assert detected.spec_version == version
+    assert detected.validator_class is CycloneDXValidationEngine
 
 
 @pytest.mark.parametrize("version", ["1.0", "1.1", "1.2"])

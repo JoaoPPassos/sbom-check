@@ -15,6 +15,7 @@ from spdx_validator.engine import ValidationEngine
 
 if TYPE_CHECKING:
     from sbom_check.config.models import SbomCheckConfig
+    from sbom_check.validator_engine import ValidatorEngine
 
 
 class SbomCheckEngine:
@@ -24,12 +25,14 @@ class SbomCheckEngine:
         self,
         config: SbomCheckConfig | None = None,
         profile_name: str = "default",
+        validator_class: type[ValidatorEngine] | None = None,
     ) -> None:
         """Initialize the SBOM-Check engine.
 
         Args:
             config: Custom configuration to use
             profile_name: Profile name to use if config is not provided
+            validator_class: Validator engine class to instantiate
         """
         if config is None:
             loader = ConfigLoader()
@@ -37,8 +40,10 @@ class SbomCheckEngine:
 
         self.config = config
 
-        # Initialize SPDX validator engine
-        self.spdx_engine = ValidationEngine()
+        # Use SPDX validation by default for backwards compatibility.
+        selected_validator = validator_class or ValidationEngine
+        self.engine = selected_validator()
+        self._is_spdx_engine = validator_class is None or selected_validator is ValidationEngine
 
     def validate_file(self, file_path: Path | str) -> SbomCheckResult:
         """Validate an SPDX document from file.
@@ -128,10 +133,14 @@ class SbomCheckEngine:
             Complete validation result
         """
         # Run SPDX validation first
-        spdx_result = self.spdx_engine.validate_dict(spdx_data)
+        spdx_result = self.engine.validate_dict(spdx_data)
 
-        # Run custom profile validation
-        profile_result = self._validate_profile_requirements(spdx_data)
+        # The completeness profile is SPDX-specific.
+        profile_result = (
+            self._validate_profile_requirements(spdx_data)
+            if self._is_spdx_engine
+            else None
+        )
 
         # Combine results
         combined_result = SbomCheckResult.combine(
