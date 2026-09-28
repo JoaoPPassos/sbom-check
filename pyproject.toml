@@ -39,6 +39,7 @@ dependencies = [
 [project.scripts]
 sbom-check = "sbom_check.cli:main"
 spdx-validate = "spdx_validator.cli:main"
+cyclonedx-validate = "cyclone_validator.cli:main"
 
 [dependency-groups]
 dev = [
