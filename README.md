@@ -11,7 +11,7 @@ A multi-format SBOM validator supporting SPDX 2.3 and CycloneDX JSON documents. 
 ## Features
 
 - **Multi-format validation**: Automatic detection and validation of SPDX 2.3 and CycloneDX JSON 1.3–1.7 documents
-- **Dual CLI Tools**: Both `sbom-check` and `spdx-validate` commands available
+- **CLI Tools**: Both `sbom-check`, `spdx-validate`, and `cyclonedx-validate` commands available
 - **Configurable Requirements**: YAML-based configuration system with inheritance
 - **Multiple Profiles**: Built-in profiles for different use cases (basic, default, automotive, etc.)
 - **Rich Reporting**: Text and JSON output formats with detailed error messages
@@ -180,6 +180,7 @@ SBOM-Check includes an integrated spdx-validator library that provides:
 
 - **Core SPDX 2.3 Validation**: JSON Schema validation against official SPDX specification
 - **Standalone CLI**: `spdx-validate` command for direct SPDX validation
+- **Standalone CycloneDX CLI**: `cyclonedx-validate` command for direct CycloneDX JSON schema validation
 - **Library Integration**: Used internally by SBOM-Check for base validation
 - **Unified Results**: Combined validation results with detailed error reporting
 
@@ -309,6 +310,14 @@ Options:
   --validate-config PATH       Validate a configuration file
   --version                    Show the version and exit.
   --help                       Show this message and exit.
+```
+
+### cyclonedx-validate
+
+Direct CycloneDX JSON schema validation for versions 1.3–1.7. Semantic and Qualcomm completeness validation are not performed.
+
+```bash
+uv run cyclonedx-validate --output-format json supplier-bom.cdx.json
 ```
 
 ### spdx-validate

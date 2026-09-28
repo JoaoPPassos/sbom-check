@@ -1,5 +1,6 @@
 """CycloneDX validation support."""
 
+from cyclone_validator.cli import main
 from cyclone_validator.engine import CycloneDXEngine, CycloneDXValidationEngine
 from cyclone_validator.validators import (
     CycloneDXValidationResult,
@@ -15,4 +16,5 @@ __all__ = [
     "CycloneDXValidator",
     "JsonSchemaValidator",
     "SemanticValidator",
+    "main",
 ]
