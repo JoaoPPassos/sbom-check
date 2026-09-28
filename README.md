@@ -6,7 +6,7 @@ SPDX-License-Identifier: BSD-3-Clause
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
 
-A multi-format SBOM validator supporting SPDX 2.3 and CycloneDX JSON documents, with configurable SPDX completeness requirements.
+A multi-format SBOM validator supporting SPDX 2.3 and CycloneDX JSON documents. SPDX documents receive configurable completeness requirements; CycloneDX documents currently receive structural schema validation.
 
 ## Features
 
@@ -88,6 +88,33 @@ uv run sbom-check --output-format json my-sbom.spdx.json
 ```bash
 uv run spdx-validate --output-format json my-sbom.spdx.json
 ```
+
+## CycloneDX JSON Validation
+
+Validate a CycloneDX JSON document with the same command used for SPDX documents:
+
+```bash
+uv run sbom-check supplier-bom.cdx.json
+```
+
+SBOM-Check supports CycloneDX JSON versions 1.3, 1.4, 1.5, 1.6, and 1.7. The document's `specVersion` selects the corresponding schema bundled with `cyclonedx-python-lib`; validation does not require network access. JSON Schema validation uses the default non-strict policy. Additional properties are reported as warnings when the selected schema identifies them. CycloneDX XML is not supported.
+
+CycloneDX validation is currently limited to structural JSON Schema validation. SPDX-specific Qualcomm completeness and profile checks are not applied to CycloneDX documents. Results therefore report `profile_status: "not_applicable"`, with `core_valid` indicating schema status. CycloneDX semantic, completeness, and business validation are planned separately.
+
+Example JSON result:
+
+```json
+{
+  "document_format": "CycloneDX",
+  "spec_version": "1.7",
+  "overall_valid": true,
+  "core_valid": true,
+  "profile_status": "not_applicable",
+  "spdx_valid": null,
+  "profile_valid": null
+}
+```
+
 
 ## Configuration Profiles
 
