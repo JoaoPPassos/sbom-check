@@ -192,8 +192,8 @@ class SbomCheckEngine:
         """Create a structured result for unsupported input."""
         return SbomCheckResult(
             overall_valid=False,
-            spdx_valid=False,
-            profile_valid=True,
+            spdx_valid=None,
+            profile_valid=None,
             core_valid=False,
             profile_status=ProfileStatus.NOT_APPLICABLE,
             messages=[
@@ -204,7 +204,7 @@ class SbomCheckEngine:
                 )
             ],
             summary=ValidationSummary(errors=1, failed_rules=1),
-            profile_name=self.config.metadata.name,
+            profile_name=None,
             file_path=file_path,
             document_format=DocumentFormat.UNKNOWN,
             spec_version=None,

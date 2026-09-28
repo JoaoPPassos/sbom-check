@@ -91,8 +91,8 @@ class SbomCheckResult(BaseModel):
     """Complete validation result combining SPDX and custom validation."""
 
     overall_valid: bool
-    spdx_valid: bool
-    profile_valid: bool
+    spdx_valid: bool | None
+    profile_valid: bool | None
     core_valid: bool = False
     profile_status: ProfileStatus = ProfileStatus.NOT_APPLICABLE
     messages: list[ValidationMessage] = Field(default_factory=list)
@@ -122,8 +122,12 @@ class SbomCheckResult(BaseModel):
         summary = cls._calculate_summary(messages)
 
         # Determine validity
-        spdx_valid = getattr(spdx_result, "is_valid", False)
-        profile_valid = profile_result.overall_valid if profile_result else True
+        core_valid = getattr(spdx_result, "is_valid", False)
+        is_spdx = document_format is DocumentFormat.SPDX
+        spdx_valid = core_valid if is_spdx else None
+        profile_valid = (
+            profile_result.overall_valid if profile_result else None
+        )
         profile_status = (
             ProfileStatus.PASSED
             if profile_result and profile_valid
@@ -131,17 +135,20 @@ class SbomCheckResult(BaseModel):
             if profile_result
             else ProfileStatus.NOT_APPLICABLE
         )
-        overall_valid = spdx_valid and profile_valid and summary.errors == 0
-
+        overall_valid = (
+            core_valid
+            and (profile_result is None or profile_result.overall_valid)
+            and summary.errors == 0
+        )
         return cls(
             overall_valid=overall_valid,
             spdx_valid=spdx_valid,
             profile_valid=profile_valid,
-            core_valid=spdx_valid,
+            core_valid=core_valid,
             profile_status=profile_status,
             messages=messages,
             summary=summary,
-            profile_name=profile_name,
+            profile_name=profile_name if is_spdx else None,
             file_path=file_path,
             document_format=document_format,
             spec_version=spec_version,
