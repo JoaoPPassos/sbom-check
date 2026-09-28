@@ -1,3 +1,5 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause
 """Tests for the CycloneDX schema validator adapter."""
 
 import pytest
