@@ -146,7 +146,7 @@ class SbomCheckEngine:
             try:
                 detected = detect_document(spdx_data)
             except UnsupportedDocumentError as error:
-                return self._unsupported_result(error)
+                return self._unsupported_result(error, file_path=file_path)
 
             if detected.validator_class is not type(self.engine):
                 self.engine = detected.validator_class()
@@ -187,7 +187,7 @@ class SbomCheckEngine:
         return combined_result
 
     def _unsupported_result(
-        self, error: UnsupportedDocumentError
+        self, error: UnsupportedDocumentError, file_path: str | None = None
     ) -> SbomCheckResult:
         """Create a structured result for unsupported input."""
         return SbomCheckResult(
@@ -205,6 +205,7 @@ class SbomCheckEngine:
             ],
             summary=ValidationSummary(errors=1, failed_rules=1),
             profile_name=self.config.metadata.name,
+            file_path=file_path,
             document_format=DocumentFormat.UNKNOWN,
             spec_version=None,
         )

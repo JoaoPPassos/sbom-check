@@ -25,10 +25,8 @@ except ImportError:
     __version__ = "dev"
 
 from sbom_check.config.loader import ConfigLoader
-from sbom_check.detection import DetectedDocument, detect_document
 from sbom_check.engine import SbomCheckEngine
 from sbom_check.models import ProfileStatus, ValidationSeverity
-from spdx_validator.engine import ValidationEngine
 
 console = Console()
 
@@ -68,36 +66,20 @@ def validate_single_file(
     else:
         sbom_config = loader.load_profile(profile)
 
-    # Detect the document format before selecting the validation engine.
-    detected = _detect_document(file_path)
-    validator_class = detected.validator_class if detected else ValidationEngine
-    engine = SbomCheckEngine(sbom_config, validator_class=validator_class)
+    # Detection and validator selection are owned by SbomCheckEngine.
+    engine = SbomCheckEngine(sbom_config)
     result = engine.validate_file(file_path)
-    _set_result_document_metadata(result, detected)
+    _ensure_result_document_metadata(result)
     return file_path, result
 
 
-def _detect_document(file_path: Path) -> DetectedDocument | None:
-    """Open a file and detect its format before engine selection."""
-    try:
-        with file_path.open(encoding="utf-8") as file_handle:
-            document = json.load(file_handle)
-    except json.JSONDecodeError:
-        # Preserve the engine's standard invalid-JSON result.
-        return None
-    return detect_document(document)
-
-
-def _set_result_document_metadata(
-    result: Any, detected: DetectedDocument | None
-) -> None:
-    """Attach detected format metadata to a validation result."""
-    if detected is None:
+def _ensure_result_document_metadata(result: Any) -> None:
+    """Fill metadata defaults without overwriting engine-detected values."""
+    if not isinstance(getattr(result, "document_format", None), str):
         result.document_format = "unknown"
+    spec_version = getattr(result, "spec_version", None)
+    if spec_version is not None and not isinstance(spec_version, str):
         result.spec_version = None
-    else:
-        result.document_format = detected.format.value
-        result.spec_version = detected.spec_version
 
 
 def output_text_multiple(results: list[tuple[Path, Any]]) -> None:
@@ -293,14 +275,10 @@ def main(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-m
             else:
                 sbom_config = loader.load_profile(profile)
 
-            # Detect the document format before selecting the validation engine.
-            detected = _detect_document(file_path)
-            validator_class = detected.validator_class if detected else ValidationEngine
-            engine = SbomCheckEngine(
-                sbom_config, validator_class=validator_class
-            )
+            # Detection and validator selection are owned by SbomCheckEngine.
+            engine = SbomCheckEngine(sbom_config)
             result = engine.validate_file(file_path)
-            _set_result_document_metadata(result, detected)
+            _ensure_result_document_metadata(result)
             results.append((file_path, result))
 
             if not result.overall_valid:
