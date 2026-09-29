@@ -44,21 +44,20 @@ class CycloneDXValidationEngine(ValidatorEngine):
         self, document: dict[str, Any], spec_version: str
     ) -> CycloneDXValidationResult:
         """Validate a parsed CycloneDX document."""
-        normalized_document = self._normalize_data(document)
         messages: list[ValidationMessage] = []
         schema_valid = True
         semantic_valid = True
 
         if self.enable_schema_validation and self.schema_validator:
             schema_result = self.schema_validator.validate(
-                normalized_document, spec_version
+                document, spec_version
             )
             messages.extend(schema_result.messages)
             schema_valid = schema_result.is_valid
 
         if self.enable_semantic_validation and self.semantic_validator and schema_valid:
             semantic_result = self.semantic_validator.validate(
-                normalized_document, spec_version
+                document, spec_version
             )
             messages.extend(semantic_result.messages)
             semantic_valid = semantic_result.is_valid
@@ -82,7 +81,7 @@ class CycloneDXValidationEngine(ValidatorEngine):
     def validate_json_string(self, json_string: str) -> CycloneDXValidationResult:
         """Validate a CycloneDX document from a JSON string."""
         try:
-            document = json.loads(json_string, object_hook=self._normalize_object_hook)
+            document = json.loads(json_string)
         except json.JSONDecodeError as error:
             return CycloneDXValidationResult(
                 is_valid=False,
@@ -121,21 +120,6 @@ class CycloneDXValidationEngine(ValidatorEngine):
             )
 
         return self.validate_dict(document, spec_version)
-
-    def _normalize_object_hook(self, obj: dict[str, Any]) -> dict[str, Any]:
-        """Return parsed CycloneDX objects unchanged."""
-        return obj
-
-    def _normalize_data(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Return parsed CycloneDX data unchanged."""
-        return data
-
-    def _enhance_pydantic_error_message(
-        self, error_message: str, document: dict[str, Any]
-    ) -> str:
-        """Return a CycloneDX validation error unchanged."""
-        del document
-        return error_message
 
     def validate_dict(
         self, document: dict[str, Any], spec_version: str | None = None
