@@ -32,19 +32,19 @@ class ValidatorEngine(ABC):
     def validate_json_string(self, json_string: str) -> Any:
         """Validate an SBOM document represented as a JSON string."""
 
-    @abstractmethod
-    def _normalize_object_hook(self, obj: dict[str, Any]) -> dict[str, Any]:
-        """Normalize an object while parsing JSON."""
+    # @abstractmethod
+    # def _normalize_object_hook(self, obj: dict[str, Any]) -> dict[str, Any]:
+    #     """Normalize an object while parsing JSON."""
 
-    @abstractmethod
-    def _normalize_data(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Normalize parsed SBOM data before validation."""
+    # @abstractmethod
+    # def _normalize_data(self, data: dict[str, Any]) -> dict[str, Any]:
+    #     """Normalize parsed SBOM data before validation."""
 
-    @abstractmethod
-    def _enhance_pydantic_error_message(
-        self, error_message: str, document: dict[str, Any]
-    ) -> str:
-        """Add document-specific context to model validation errors."""
+    # @abstractmethod
+    # def _enhance_pydantic_error_message(
+    #     self, error_message: str, document: dict[str, Any]
+    # ) -> str:
+    #     """Add document-specific context to model validation errors."""
 
     @abstractmethod
     def validate_dict(self, document: dict[str, Any]) -> Any:
