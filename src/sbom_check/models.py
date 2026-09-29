@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Any
+from warnings import warn as warn_deprecated
 
 from pydantic import BaseModel, Field
 
@@ -103,16 +104,32 @@ class SbomCheckResult(BaseModel):
     spec_version: str | None = None
 
     @classmethod
-    def combine(  # pylint: disable=too-many-positional-arguments  # noqa: PLR0917,RUF100
+    def combine(  # pylint: disable=too-many-positional-arguments,too-many-locals  # noqa: PLR0917,RUF100
         cls,
-        core_result: Any,  # core validator result
+        core_result: Any = None,  # core validator result
         profile_result: SbomCheckResult | None = None,
         profile_name: str | None = None,
         file_path: str | None = None,
         document_format: DocumentFormat = DocumentFormat.SPDX,
         spec_version: str | None = "2.3",
+        *,
+        spdx_result: Any = None,
     ) -> SbomCheckResult:
-        """Combine core validation result with profile validation result."""
+        """Combine core validation result with profile validation result.
+
+        ``spdx_result`` is deprecated; use ``core_result`` instead.
+        """
+        if core_result is not None and spdx_result is not None:
+            raise TypeError("Pass either core_result or spdx_result, not both")
+        if spdx_result is not None:
+            warn_deprecated(
+                "spdx_result is deprecated; use core_result instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            core_result = spdx_result
+        if core_result is None:
+            raise TypeError("Missing required argument: core_result")
         # Convert and collect all messages
         messages = cls._convert_validation_messages(core_result)
         if profile_result:
