@@ -21,7 +21,7 @@
   },
   "components": [
     {
-      "type": "not-a-component-type",
+      "type": "library",
       "bom-ref": "pkg:pypi/requests@2.32.0",
       "group": "python",
       "name": "requests",
@@ -43,6 +43,15 @@
         "pkg:pypi/requests@2.32.0",
         "pkg:npm/lodash@4.17.21"
       ]
+    }
+  ],
+  "citations": [
+    {
+      "timestamp": 42,
+      "pointers": [
+        "/components/0"
+      ],
+      "attributedTo": "pkg:pypi/requests@2.32.0"
     }
   ]
 }

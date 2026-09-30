@@ -44,5 +44,14 @@
         "pkg:npm/lodash@4.17.21"
       ]
     }
+  ],
+  "citations": [
+    {
+      "timestamp": "2025-01-01T00:00:00Z",
+      "pointers": [
+        "/components/0"
+      ],
+      "attributedTo": "pkg:pypi/requests@2.32.0"
+    }
   ]
 }
