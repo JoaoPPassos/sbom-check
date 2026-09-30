@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from cyclone_validator import CycloneDXValidationEngine
-from sbom_check.validator_engine import ValidatorEngine
+from sbom_validator.engine import ValidatorEngine
 from spdx_validator.engine import ValidationEngine
 
 

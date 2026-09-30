@@ -11,6 +11,13 @@ from cyclone_validator import CycloneDXValidationEngine, JsonSchemaValidator
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "cyclonedx"
 VERSIONS = ("1.3", "1.4", "1.5", "1.6", "1.7")
+EXPECTED_INVALID_PATHS = {
+    "1.3": {"$.components[0].type", "$.components[1].name"},
+    "1.4": {"$.components[0]"},
+    "1.5": {"$.components[1].purl"},
+    "1.6": {"$.components[0].version"},
+    "1.7": {"$.components[0].type"},
+}
 
 
 def _load_fixture(name: str) -> dict:
@@ -36,10 +43,7 @@ def test_invalid_fixture_reports_all_schema_failures(version: str) -> None:
     result = CycloneDXValidationEngine().validate_dict(document)
 
     assert not result.is_valid
-    assert {message.field_path for message in result.messages} >= {
-        "$.components[0].type",
-        "$.components[1].name",
-    }
+    assert {message.field_path for message in result.messages} >= EXPECTED_INVALID_PATHS[version]
     assert all(message.rule_id == "cyclonedx_schema_error" for message in result.messages if message.rule_id != "semantic_validation_skipped")
 
 

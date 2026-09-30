@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from sbom_check.validator_engine import ValidatorEngine
+from sbom_validator.engine import ValidatorEngine
 from spdx_validator.models import (
     SpdxDocument,
     ValidationMessage,

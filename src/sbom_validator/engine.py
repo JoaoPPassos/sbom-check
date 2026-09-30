@@ -1,7 +1,7 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Abstract interface for SBOM validation engines."""
+"""Abstract interfaces shared by SBOM validation engines."""
 
 from __future__ import annotations
 
@@ -13,16 +13,11 @@ if TYPE_CHECKING:
 
 
 class ValidatorEngine(ABC):
-    """Interface required by every validator used by the validation engine."""
+    """Interface required by every format-specific validation engine."""
 
     @abstractmethod
-    def __init__(
-        self,
-        schema_path: str | Path | None = None,
-        enable_schema_validation: bool = True,
-        enable_semantic_validation: bool = True,
-    ) -> None:
-        """Initialize the validator with schema and validation settings."""
+    def __init__(self, schema_path: str | Path | None = None, enable_schema_validation: bool = True, enable_semantic_validation: bool = True) -> None:
+        """Initialize the validator with validation settings."""
 
     @abstractmethod
     def validate(self, document: dict[str, Any], spec_version: str) -> Any:

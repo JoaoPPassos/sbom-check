@@ -14,7 +14,7 @@ from sbom_check.models import (
     ValidationMessage,
     ValidationSeverity,
 )
-from sbom_check.validator_engine import ValidatorEngine
+from sbom_validator.engine import ValidatorEngine
 
 __all__ = [
     "DocumentFormat",

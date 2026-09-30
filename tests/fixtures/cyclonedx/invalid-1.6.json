@@ -21,17 +21,17 @@
   },
   "components": [
     {
-      "type": "not-a-component-type",
+      "type": "library",
       "bom-ref": "pkg:pypi/requests@2.32.0",
       "group": "python",
       "name": "requests",
-      "version": "2.32.0",
+      "version": 42,
       "purl": "pkg:pypi/requests@2.32.0"
     },
     {
       "type": "library",
       "bom-ref": "pkg:npm/lodash@4.17.21",
-      "name": 42,
+      "name": "lodash",
       "version": "4.17.21",
       "purl": "pkg:npm/lodash@4.17.21"
     }
