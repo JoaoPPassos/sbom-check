@@ -15,7 +15,7 @@ from cyclone_validator.validators import (
     SemanticValidator,
 )
 from sbom_check.models import ValidationMessage, ValidationSeverity
-from sbom_check.validator_engine import ValidatorEngine
+from sbom_validator.engine import ValidatorEngine
 
 
 class CycloneDXValidationEngine(ValidatorEngine):

@@ -13,7 +13,7 @@ from sbom_check.models import DocumentFormat
 from spdx_validator.engine import ValidationEngine
 
 if TYPE_CHECKING:
-    from sbom_check.validator_engine import ValidatorEngine
+    from sbom_validator.engine import ValidatorEngine
 
 
 SUPPORTED_CYCLONEDX_VERSIONS = frozenset({"1.3", "1.4", "1.5", "1.6", "1.7"})

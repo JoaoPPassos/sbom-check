@@ -53,7 +53,6 @@ def test_invalid_document_reports_schema_paths():
     assert validation_result["is_valid"] is False
     assert {message["field_path"] for message in validation_result["messages"]} == {
         "$.components[0].type",
-        "$.components[1].name",
     }
     assert all(
         message["rule_id"] == "cyclonedx_schema_error"

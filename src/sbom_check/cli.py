@@ -421,6 +421,7 @@ def _print_text_result(result: Any, file_path: str) -> None:
         console.print("[red]❌ Overall Result: FAILED[/red]")
 
     format_name = getattr(result, "document_format", "SPDX")
+    format_name = getattr(format_name, "value", format_name)
     specification = (
         f" {result.spec_version}" if result.spec_version else ""
     )

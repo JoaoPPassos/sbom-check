@@ -23,7 +23,7 @@ from spdx_validator.engine import ValidationEngine
 
 if TYPE_CHECKING:
     from sbom_check.config.models import SbomCheckConfig
-    from sbom_check.validator_engine import ValidatorEngine
+    from sbom_validator.engine import ValidatorEngine
 
 
 class SbomCheckEngine:
@@ -142,23 +142,28 @@ class SbomCheckEngine:
             Complete validation result
         """
         detected = None
+        selected_engine = self.engine
+        profile_applicable = self._profile_applicable
+        document_format = DocumentFormat.SPDX if profile_applicable else DocumentFormat.CYCLONEDX
+        spec_version = "2.3" if profile_applicable else sbom_data.get("specVersion")
         if self._validator_class is None:
             try:
                 detected = detect_document(sbom_data)
             except UnsupportedDocumentError as error:
                 return self._unsupported_result(error, file_path=file_path)
 
-            if detected.validator_class is not type(self.engine):
-                self.engine = detected.validator_class()
-            self._profile_applicable = detected.format is DocumentFormat.SPDX
+            selected_engine = detected.validator_class()
+            profile_applicable = detected.format is DocumentFormat.SPDX
+            document_format = detected.format
+            spec_version = detected.spec_version
 
         # Run the selected format engine.
-        core_result = self.engine.validate_dict(sbom_data)
+        core_result = selected_engine.validate_dict(sbom_data)
 
         # The completeness profile is SPDX-specific.
         profile_result = (
             self._validate_profile_requirements(sbom_data)
-            if self._profile_applicable
+            if profile_applicable
             else None
         )
 
@@ -168,20 +173,8 @@ class SbomCheckEngine:
             profile_result=profile_result,
             profile_name=self.config.metadata.name,
             file_path=file_path,
-            document_format=(
-                detected.format
-                if detected
-                else DocumentFormat.SPDX
-                if self._profile_applicable
-                else DocumentFormat.CYCLONEDX
-            ),
-            spec_version=(
-                detected.spec_version
-                if detected
-                else "2.3"
-                if self._profile_applicable
-                else sbom_data.get("specVersion")
-            ),
+            document_format=document_format,
+            spec_version=spec_version,
         )
 
         return combined_result
