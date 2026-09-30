@@ -59,7 +59,10 @@ def detect_document(data: Any) -> DetectedDocument:
             "Unsupported input: the JSON document must be a top-level object"
         )
 
-    has_spdx_marker = "spdxVersion" in data
+    has_spdx_marker = any(
+        marker in data
+        for marker in ("SPDXID", "documentNamespace", "creationInfo", "dataLicense", "spdxVersion")
+    )
     has_cyclonedx_marker = "bomFormat" in data or "specVersion" in data
 
     if has_spdx_marker and has_cyclonedx_marker:
@@ -82,20 +85,13 @@ def detect_document(data: Any) -> DetectedDocument:
 
 
 def _detect_spdx(data: dict[str, Any]) -> DetectedDocument:
-    version = data["spdxVersion"]
-    if not isinstance(version, str) or not version:
-        raise UnsupportedDocumentError(
-            "Unsupported SPDX input: 'spdxVersion' must be a non-empty string",
-            rule_id="unsupported_version",
-        )
-
-    if version != SPDX_VERSION:
-        raise UnsupportedDocumentError(
-            f"Unsupported SPDX version '{version}'; only {SPDX_VERSION} is supported",
-            rule_id="unsupported_version",
-        )
-
-    return DetectedDocument(DocumentFormat.SPDX, "2.3", ValidationEngine)
+    version = data.get("spdxVersion")
+    spec_version = (
+        version.removeprefix("SPDX-")
+        if isinstance(version, str) and version
+        else None
+    )
+    return DetectedDocument(DocumentFormat.SPDX, spec_version, ValidationEngine)
 
 
 def _detect_cyclonedx(data: dict[str, Any]) -> DetectedDocument:
