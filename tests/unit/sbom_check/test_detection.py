@@ -64,6 +64,9 @@ def test_reject_malformed_cyclonedx_version() -> None:
         detect_document({"bomFormat": "CycloneDX", "specVersion": None})
 
 
-def test_reject_unsupported_spdx_version() -> None:
-    with pytest.raises(UnsupportedDocumentError, match=r"only SPDX-2\.3"):
-        detect_document({"spdxVersion": "SPDX-2.2"})
+def test_detect_unsupported_spdx_version_for_validator() -> None:
+    detected = detect_document({"spdxVersion": "SPDX-2.2"})
+
+    assert detected.format is DocumentFormat.SPDX
+    assert detected.spec_version == "2.2"
+    assert detected.validator_class is ValidationEngine

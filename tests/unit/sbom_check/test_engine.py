@@ -4,6 +4,7 @@
 """Unit tests for SBOM validation engine."""
 
 import json
+from copy import deepcopy
 from unittest.mock import Mock, patch
 
 from cyclone_validator.engine import CycloneDXValidationEngine
@@ -463,6 +464,33 @@ def test_engine_auto_detects_cyclonedx_without_explicit_validator_class():
     assert result.spec_version == "1.7"
     assert result.core_valid is True
     assert result.profile_status is ProfileStatus.NOT_APPLICABLE
+
+
+def test_missing_spdx_version_preserves_validator_and_profile_diagnostics(sample_valid_spdx_document):
+    document = deepcopy(sample_valid_spdx_document)
+    document.pop("spdxVersion")
+    document["packages"][0].pop("downloadLocation")
+    document["creationInfo"].pop("licenseListVersion")
+    document["relationships"] = []
+
+    result = SbomCheckEngine().validate_dict(document)
+    messages = [message.message for message in result.messages]
+
+    assert result.document_format == "SPDX"
+    assert len(messages) > 1
+    assert any("downloadLocation" in message for message in messages)
+    assert any("spdxVersion" in message for message in messages)
+    assert any("licenseListVersion" in message for message in messages)
+    assert any("DESCRIBES" in message for message in messages)
+
+
+def test_unsupported_spdx_version_preserves_validator_diagnostics(sample_invalid_spdx_document):
+    result = SbomCheckEngine().validate_dict(sample_invalid_spdx_document)
+    messages = [message.message for message in result.messages]
+
+    assert result.document_format == "SPDX"
+    assert len(messages) > 1
+    assert any("SPDX-2.2" in message or "SPDX-2.3" in message for message in messages)
 
 
 def test_engine_returns_structured_result_for_unsupported_input():
