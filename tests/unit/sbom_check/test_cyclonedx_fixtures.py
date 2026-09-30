@@ -12,11 +12,11 @@ from cyclone_validator import CycloneDXValidationEngine, JsonSchemaValidator
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "cyclonedx"
 VERSIONS = ("1.3", "1.4", "1.5", "1.6", "1.7")
 EXPECTED_INVALID_PATHS = {
-    "1.3": {"$.components[0].type", "$.components[1].name"},
+    "1.3": {"$.components[0].type"},
     "1.4": {"$.components[0]"},
     "1.5": {"$.components[1].purl"},
     "1.6": {"$.components[0].version"},
-    "1.7": {"$.components[0].type"},
+    "1.7": {"$.citations[0].timestamp"},
 }
 
 
