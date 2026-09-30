@@ -63,10 +63,9 @@ class JsonSchemaValidator:
         validator = make_schemabased_validator(OutputFormat.JSON, schema_version)
         errors = validator.validate_str(json.dumps(document), all_errors=True)
         messages = self._convert_errors(errors)
-        has_errors = any(
-            message.severity == ValidationSeverity.ERROR for message in messages
-        )
-        return CycloneDXValidationResult(is_valid=not has_errors, messages=messages)
+        # Additional properties remain warnings under the non-strict reporting
+        # policy, but they are still schema violations and must invalidate the document.
+        return CycloneDXValidationResult(is_valid=not messages, messages=messages)
 
     @staticmethod
     def _convert_errors(
@@ -94,14 +93,9 @@ class JsonSchemaValidator:
             elif title:
                 message = f"{title}: {message}"
 
-            severity = (
-                ValidationSeverity.WARNING
-                if getattr(raw_error, "validator", None) == "additionalProperties"
-                else ValidationSeverity.ERROR
-            )
             messages.append(
                 ValidationMessage(
-                    severity=severity,
+                    severity=ValidationSeverity.ERROR,
                     message=message,
                     rule_id="cyclonedx_schema_error",
                     field_path=path,

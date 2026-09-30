@@ -493,6 +493,30 @@ def test_unsupported_spdx_version_preserves_validator_diagnostics(sample_invalid
     assert any("SPDX-2.2" in message or "SPDX-2.3" in message for message in messages)
 
 
+def test_cyclonedx_additional_properties_make_combined_result_invalid() -> None:
+    result = SbomCheckEngine().validate_dict({
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.4",
+        "bogusRootField": True,
+        "components": [{"type": "library", "name": "example", "bogusField": True}],
+    })
+
+    assert result.document_format == "CycloneDX"
+    assert result.core_valid is False
+    assert result.overall_valid is False
+    assert result.summary.errors == 2
+    assert result.summary.warnings == 1
+    schema_messages = [
+        message for message in result.messages
+        if message.rule_id == "cyclonedx_schema_error"
+    ]
+    assert len(schema_messages) == 2
+    assert {message.field_path for message in schema_messages} == {
+        "$",
+        "$.components[0]",
+    }
+
+
 def test_engine_returns_structured_result_for_unsupported_input():
     """Unsupported documents never fall through to SPDX validation."""
     result = SbomCheckEngine().validate_dict({"format": "unknown"})
