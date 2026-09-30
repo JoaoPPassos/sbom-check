@@ -10,7 +10,12 @@ from unittest.mock import Mock, patch
 
 from click.testing import CliRunner
 
-from sbom_check.cli import _print_json_result, _print_text_result, main
+from sbom_check.cli import (
+    _print_json_result,
+    _print_text_result,
+    collect_sbom_files,
+    main,
+)
 
 
 def test_cli_help():
@@ -23,6 +28,7 @@ def test_cli_help():
     assert "--profile" in result.output
     assert "--config" in result.output
     assert "--output-format" in result.output
+    assert "default: *.{spdx,cdx}.json" in result.output
 
 
 def test_cli_version():
@@ -518,6 +524,17 @@ def test_cli_validate_directory_recursive(mock_engine_class, tmp_path):
     assert result.exit_code == 0
     assert "Validated 3 files:" in result.output
     assert "3 valid" in result.output
+
+
+def test_default_scan_pattern_includes_spdx_and_cyclonedx(tmp_path):
+    (tmp_path / "bom.spdx.json").write_text("{}")
+    (tmp_path / "bom.cdx.json").write_text("{}")
+    (tmp_path / "config.json").write_text("{}")
+    (tmp_path / "settings.json").write_text("{}")
+
+    files = collect_sbom_files((tmp_path,), recursive=False, pattern="*.{spdx,cdx}.json")
+
+    assert [file.name for file in files] == ['bom.cdx.json', 'bom.spdx.json']
 
 
 def test_cli_validate_custom_pattern(tmp_path):

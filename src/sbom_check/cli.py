@@ -29,22 +29,34 @@ from sbom_check.engine import SbomCheckEngine
 from sbom_check.models import ProfileStatus, ValidationSeverity
 
 console = Console()
+DEFAULT_SBOM_PATTERN = "*.{spdx,cdx}.json"
+
+
+def _expand_pattern(pattern: str) -> tuple[str, ...]:
+    """Expand brace alternatives for filesystem globbing."""
+    if "{" not in pattern or "}" not in pattern:
+        return (pattern,)
+    prefix, remainder = pattern.split("{", 1)
+    alternatives, suffix = remainder.split("}", 1)
+    return tuple(f"{prefix}{alternative}{suffix}" for alternative in alternatives.split(","))
 
 
 def collect_sbom_files(
-    paths: tuple[Path, ...], recursive: bool, pattern: str
+    paths: tuple[Path, ...], recursive: bool, pattern: str | None
 ) -> list[Path]:
     """Collect all SBOM files from the given paths."""
     files = []
+    patterns = _expand_pattern(pattern or DEFAULT_SBOM_PATTERN)
 
     for path in paths:
         if path.is_file():
             files.append(path.resolve())
         elif path.is_dir():
-            if recursive:
-                files.extend(p.resolve() for p in path.rglob(pattern))
-            else:
-                files.extend(p.resolve() for p in path.glob(pattern))
+            for current_pattern in patterns:
+                if recursive:
+                    files.extend(p.resolve() for p in path.rglob(current_pattern))
+                else:
+                    files.extend(p.resolve() for p in path.glob(current_pattern))
         else:
             console.print(f"[yellow]Warning: {path} is neither a file nor directory[/yellow]")
 
@@ -188,8 +200,8 @@ def output_json_multiple(results: list[tuple[Path, Any]]) -> None:
 )
 @click.option(
     "--pattern",
-    default="*.json",
-    help="File pattern to match when scanning directories (default: *.json)",
+    default="*.{spdx,cdx}.json",
+    help="File pattern to match when scanning directories (default: *.{spdx,cdx}.json)",
 )
 @click.option(
     "--jobs",
