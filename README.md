@@ -97,7 +97,7 @@ Validate a CycloneDX JSON document with the same command used for SPDX documents
 uv run sbom-check supplier-bom.cdx.json
 ```
 
-SBOM-Check supports CycloneDX JSON versions 1.3, 1.4, 1.5, 1.6, and 1.7. The document's `specVersion` selects the corresponding schema bundled with `cyclonedx-python-lib`; validation does not require network access. JSON Schema validation uses the default non-strict policy. Additional properties are reported as warnings when the selected schema identifies them. CycloneDX XML is not supported.
+SBOM-Check supports CycloneDX JSON versions 1.3, 1.4, 1.5, 1.6, and 1.7. The document's `specVersion` selects the corresponding schema bundled with `cyclonedx-python-lib`; validation does not require network access. JSON Schema validation rejects additional properties as schema errors. These violations make the document invalid (`core_valid: false` and `overall_valid: false`). CycloneDX XML is not supported.
 
 CycloneDX validation is currently limited to structural JSON Schema validation. SPDX-specific Qualcomm completeness and profile checks are not applied to CycloneDX documents. Results therefore report `profile_status: "not_applicable"`, with `core_valid` indicating schema status. CycloneDX semantic, completeness, and business validation are planned separately.
 

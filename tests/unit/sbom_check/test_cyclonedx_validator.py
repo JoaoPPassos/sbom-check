@@ -48,7 +48,7 @@ def test_rejects_unknown_schema_version() -> None:
         )
 
 
-def test_non_strict_validation_accepts_additional_properties() -> None:
+def test_validation_rejects_additional_properties() -> None:
     result = CycloneDXValidator().validate(
         {
             "bomFormat": "CycloneDX",
@@ -58,4 +58,8 @@ def test_non_strict_validation_accepts_additional_properties() -> None:
         "1.7",
     )
 
-    assert result.is_valid
+    assert not result.is_valid
+    assert len(result.messages) == 1
+    assert result.messages[0].severity.value == "ERROR"
+    assert result.messages[0].rule_id == "cyclonedx_schema_error"
+    assert result.messages[0].field_path == "$"
