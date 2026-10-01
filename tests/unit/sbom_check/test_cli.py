@@ -4,18 +4,123 @@
 """Unit tests for CLI module."""
 
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import pytest
 from click.testing import CliRunner
 
 from sbom_check.cli import (
+    _expand_pattern,
     _print_json_result,
     _print_text_result,
     collect_sbom_files,
     main,
 )
+
+
+def test_expand_pattern_supports_multiple_brace_groups():
+    """Brace groups expand recursively rather than leaving later groups literal."""
+    assert _expand_pattern("*.{a,b}.{c,d}.json") == (
+        "*.a.c.json",
+        "*.a.d.json",
+        "*.b.c.json",
+        "*.b.d.json",
+    )
+
+
+def test_expand_pattern_supports_empty_alternatives():
+    """Empty brace alternatives remain valid shell-style expansions."""
+    assert _expand_pattern("*.{spdx,}.json") == ("*.spdx.json", "*..json")
+
+
+def test_expand_pattern_rejects_unmatched_closing_brace():
+    """Malformed brace ordering produces a clear validation error."""
+    with pytest.raises(ValueError, match=r"unmatched '\}'"):
+        _expand_pattern("*.}a{.json")
+
+
+
+def test_cli_reports_malformed_pattern_without_traceback(tmp_path):
+    """Malformed --pattern input is reported as a user-facing CLI error."""
+    result = CliRunner().invoke(
+        main,
+        ["--pattern", "*.}a{.json", str(tmp_path)],
+    )
+
+    assert result.exit_code == 3
+    assert "Error: Invalid brace pattern" in result.output
+    assert "Traceback" not in result.output
+
+
+
+@pytest.mark.parametrize(
+    ("pattern", "expected"),
+    [
+        ("*.json", ("*.json",)),
+        ("*.{a,b}.json", ("*.a.json", "*.b.json")),
+        (
+            "*.{a,b}.{c,d}.json",
+            ("*.a.c.json", "*.a.d.json", "*.b.c.json", "*.b.d.json"),
+        ),
+        ("x{a,{b,c}}y", ("xay", "xby", "xcy")),
+        ("*.{spdx,}.json", ("*.spdx.json", "*..json")),
+        ("{BOOT}.*.{spdx,cdx}.json", ("BOOT.*.spdx.json", "BOOT.*.cdx.json")),
+        ("{}", ("",)),
+        ("{foo,bar}[0-9]?.json", ("foo[0-9]?.json", "bar[0-9]?.json")),
+        ("{a,a}.{b,b}", ("a.b", "a.b", "a.b", "a.b")),
+    ],
+)
+def test_expand_pattern_matrix(pattern, expected):
+    """Representative glob syntax expands without losing literal characters."""
+    assert _expand_pattern(pattern) == expected
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "*.}a{.json",
+        "*.{a,b.json",
+        "*.a}b",
+        "{a,{b,c}",
+        "{a,b}}",
+        "a{b{c}",
+    ],
+)
+def test_expand_pattern_rejects_malformed_patterns(pattern):
+    """Every malformed brace shape raises a useful error for the full pattern."""
+    with pytest.raises(ValueError, match=re.escape(f"Invalid brace pattern {pattern!r}")):
+        _expand_pattern(pattern)
+
+
+def test_expand_pattern_rejects_pathological_expansion():
+    """Brace expansion is bounded for hostile or accidental combinatorial input."""
+    pattern = "".join("{a,b}" for _ in range(11))
+    with pytest.raises(ValueError, match="more than 1024 patterns"):
+        _expand_pattern(pattern)
+
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "*.}a{.json",
+        "*.{a,b.json",
+        "*.a}b",
+        "{a,{b,c}",
+        "{a,b}}",
+        "a{b{c}",
+    ],
+)
+def test_cli_rejects_invalid_patterns_without_traceback(tmp_path, pattern):
+    """Invalid --pattern values fail cleanly at the CLI boundary."""
+    result = CliRunner().invoke(main, ["--pattern", pattern, str(tmp_path)])
+
+    assert result.exit_code == 3
+    assert "Error: Invalid brace pattern" in result.output
+    assert "Traceback" not in result.output
 
 
 def test_cli_help():
