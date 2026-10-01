@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 
 SUPPORTED_CYCLONEDX_VERSIONS = frozenset({"1.3", "1.4", "1.5", "1.6", "1.7"})
 MINIMUM_CYCLONEDX_VERSION = "1.3"
-SPDX_VERSION = "SPDX-2.3"
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,7 +60,13 @@ def detect_document(data: Any) -> DetectedDocument:
 
     has_spdx_marker = any(
         marker in data
-        for marker in ("SPDXID", "documentNamespace", "creationInfo", "dataLicense", "spdxVersion")
+        for marker in (
+            "SPDXID",
+            "documentNamespace",
+            "creationInfo",
+            "dataLicense",
+            "spdxVersion",
+        )
     )
     has_cyclonedx_marker = "bomFormat" in data or "specVersion" in data
 
@@ -133,7 +138,6 @@ def _is_older_cyclonedx_version(version: str) -> bool:
 
 __all__ = [
     "MINIMUM_CYCLONEDX_VERSION",
-    "SPDX_VERSION",
     "SUPPORTED_CYCLONEDX_VERSIONS",
     "DetectedDocument",
     "DocumentFormat",
