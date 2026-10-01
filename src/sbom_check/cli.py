@@ -32,13 +32,71 @@ console = Console()
 DEFAULT_SBOM_PATTERN = "*.{spdx,cdx}.json"
 
 
+MAX_PATTERN_EXPANSIONS = 1024
+
+
 def _expand_pattern(pattern: str) -> tuple[str, ...]:
-    """Expand brace alternatives for filesystem globbing."""
-    if "{" not in pattern or "}" not in pattern:
+    """Expand brace alternatives recursively for filesystem globbing.
+
+    Empty alternatives are valid, but malformed brace ordering and unmatched
+    braces raise ``ValueError`` so the CLI can report the invalid pattern.
+    Expansion is capped to keep pathological user input bounded.
+    """
+    try:
+        return _expand_pattern_fragment(pattern)
+    except ValueError as error:
+        raise ValueError(f"Invalid brace pattern {pattern!r}: {error}") from None
+
+
+def _expand_pattern_fragment(pattern: str) -> tuple[str, ...]:
+    """Expand one pattern fragment while preserving the original error context."""
+    open_index = pattern.find("{")
+    close_index = pattern.find("}")
+    if open_index == -1 and close_index == -1:
         return (pattern,)
-    prefix, remainder = pattern.split("{", 1)
-    alternatives, suffix = remainder.split("}", 1)
-    return tuple(f"{prefix}{alternative}{suffix}" for alternative in alternatives.split(","))
+    if close_index != -1 and (open_index == -1 or close_index < open_index):
+        raise ValueError("unmatched '}'")
+
+    depth = 0
+    matching_close = None
+    for index in range(open_index, len(pattern)):
+        character = pattern[index]
+        if character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                matching_close = index
+                break
+
+    if matching_close is None:
+        raise ValueError("unmatched '{'")
+
+    prefix = pattern[:open_index]
+    contents = pattern[open_index + 1 : matching_close]
+    suffix = pattern[matching_close + 1 :]
+
+    alternatives: list[str] = []
+    start = 0
+    depth = 0
+    for index, character in enumerate(contents):
+        if character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+        elif character == "," and depth == 0:
+            alternatives.append(contents[start:index])
+            start = index + 1
+    alternatives.append(contents[start:])
+
+    expanded: list[str] = []
+    for alternative in alternatives:
+        expanded.extend(_expand_pattern_fragment(f"{prefix}{alternative}{suffix}"))
+        if len(expanded) > MAX_PATTERN_EXPANSIONS:
+            raise ValueError(
+                f"expands to more than {MAX_PATTERN_EXPANSIONS} patterns"
+            )
+    return tuple(expanded)
 
 
 def collect_sbom_files(
