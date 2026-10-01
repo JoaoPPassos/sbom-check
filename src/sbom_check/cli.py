@@ -159,7 +159,10 @@ def output_text_multiple(results: list[tuple[Path, Any]]) -> None:
     invalid_files = total_files - valid_files
 
     # Color-coded summary header
-    console.print(f"Validated {total_files} files: [green]{valid_files} valid[/green], [red]{invalid_files} invalid[/red]")
+    console.print(
+        f"Validated {total_files} files: [green]{valid_files} valid[/green], "
+        f"[red]{invalid_files} invalid[/red]"
+    )
     console.print("=" * 80)
 
     for file_path, result in results:
@@ -284,7 +287,8 @@ def output_json_multiple(results: list[tuple[Path, Any]]) -> None:
     help="Validate a configuration file",
 )
 @click.version_option(version=__version__, prog_name="sbom-check")
-def main(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-many-statements  # noqa: PLR0917,RUF100
+# pylint: disable=too-many-positional-arguments,too-many-locals,too-many-statements
+def main(  # noqa: PLR0917,RUF100
     paths: tuple[str, ...],
     profile: str,
     config: str | None,
