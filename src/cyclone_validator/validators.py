@@ -12,8 +12,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from cyclonedx.schema import OutputFormat, SchemaVersion
-from cyclonedx.validation import make_schemabased_validator
+from cyclonedx.schema import SchemaVersion
+from cyclonedx.validation.json import JsonStrictValidator
 
 from sbom_check.models import ValidationMessage, ValidationSeverity
 
@@ -60,7 +60,7 @@ class JsonSchemaValidator:
         if (schema_version := _SCHEMA_VERSIONS.get(spec_version)) is None:
             raise ValueError(f"Unsupported CycloneDX schema version: {spec_version}")
 
-        validator = make_schemabased_validator(OutputFormat.JSON, schema_version)
+        validator = JsonStrictValidator(schema_version)
         errors = validator.validate_str(json.dumps(document), all_errors=True)
         messages = self._convert_errors(errors)
         # Additional properties are schema violations and must invalidate the document.

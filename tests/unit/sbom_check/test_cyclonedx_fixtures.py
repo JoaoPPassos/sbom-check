@@ -22,17 +22,17 @@ EXPECTED_SCHEMA_VERSIONS = {
 VERSION_SPECIFIC_BOUNDARIES = (("1.5", "1.4"), ("1.6", "1.5"), ("1.7", "1.6"))
 EXPECTED_VALID_SCHEMA_RESULTS = {
     "1.3": (True, True, True, True, True),
-    "1.4": (True, True, True, True, True),
-    "1.5": (True, False, True, True, True),
-    "1.6": (True, False, False, True, True),
-    "1.7": (True, False, False, False, True),
+    "1.4": (False, True, True, True, True),
+    "1.5": (False, False, True, True, True),
+    "1.6": (False, False, False, True, True),
+    "1.7": (False, False, False, False, True),
 }
 EXPECTED_INVALID_SCHEMA_RESULTS = {
     "1.3": (False, False, False, False, False),
     "1.4": (False, False, False, False, False),
     "1.5": (False, False, False, False, False),
     "1.6": (False, False, False, False, False),
-    "1.7": (True, False, False, False, False),
+    "1.7": (False, False, False, False, False),
 }
 VERSIONS = ("1.3", "1.4", "1.5", "1.6", "1.7")
 SCHEMA_PAIRS = tuple((fixture, schema) for fixture in VERSIONS for schema in VERSIONS)
@@ -107,14 +107,14 @@ def test_engine_uses_declared_schema_for_each_version(
     """The engine selects the schema matching every supported version."""
     document = _load_fixture(f"valid-{version}.json")
     selected_versions = []
-    original_factory = cyclone_validators.make_schemabased_validator
+    original_validator = cyclone_validators.JsonStrictValidator
 
-    def spy_factory(output_format, schema_version):
+    def spy_validator(schema_version):
         selected_versions.append(schema_version)
-        return original_factory(output_format, schema_version)
+        return original_validator(schema_version)
 
     monkeypatch.setattr(
-        cyclone_validators, "make_schemabased_validator", spy_factory
+        cyclone_validators, "JsonStrictValidator", spy_validator
     )
 
     result = CycloneDXValidationEngine().validate_dict(document)
@@ -143,3 +143,14 @@ def test_representative_scancode_fixture_passes() -> None:
 
     assert result.is_valid
     assert result.messages == []
+
+
+def test_1_3_rejects_unknown_root_property() -> None:
+    """The strict 1.3 schema rejects unknown root properties."""
+    document = _load_fixture("valid-1.3.json")
+    document["bogusRootField"] = True
+
+    result = JsonSchemaValidator().validate(document, "1.3")
+
+    assert not result.is_valid
+    assert any(message.field_path == "$" for message in result.messages)
