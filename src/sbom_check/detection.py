@@ -8,7 +8,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from cyclone_validator.engine import CycloneDXValidationEngine
 from sbom_check.models import DocumentFormat
 from spdx_validator.engine import ValidationEngine
 
@@ -123,6 +122,8 @@ def _detect_cyclonedx(data: dict[str, Any]) -> DetectedDocument:
             f"are {', '.join(sorted(SUPPORTED_CYCLONEDX_VERSIONS))}",
             rule_id="unsupported_version",
         )
+
+    from cyclone_validator.engine import CycloneDXValidationEngine  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
 
     return DetectedDocument(DocumentFormat.CYCLONEDX, version, CycloneDXValidationEngine)
 
