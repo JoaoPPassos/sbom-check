@@ -256,6 +256,30 @@ class TestValidationEngine:
         mock_schema_validate.assert_not_called()
         mock_semantic_validate.assert_not_called()
 
+    def test_validate_dict_does_not_mutate_caller_document(self) -> None:
+        """Test that normalization does not mutate the caller document."""
+        document = {
+            "packages": [
+                {
+                    "externalRefs": [
+                        {"referenceCategory": "PACKAGE_MANAGER"},
+                        {"referenceCategory": "PERSISTENT_ID"},
+                    ]
+                }
+            ]
+        }
+
+        engine = ValidationEngine(
+            enable_schema_validation=False,
+            enable_semantic_validation=False,
+        )
+        engine.validate_dict(document)
+
+        assert document["packages"][0]["externalRefs"] == [
+            {"referenceCategory": "PACKAGE_MANAGER"},
+            {"referenceCategory": "PERSISTENT_ID"},
+        ]
+
     @patch("pathlib.Path.open", new_callable=mock_open)
     @patch("pathlib.Path.exists")
     def test_validate_file_with_path_object(

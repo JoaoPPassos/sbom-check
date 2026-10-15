@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import re
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -117,7 +118,8 @@ class ValidationEngine(ValidatorEngine):
             data: SPDX document as dictionary
 
         Returns:
-            Data with enum values corrected (modifies in-place for performance)
+            Data with enum values corrected. The supplied data is normalized
+            in-place; callers should pass an owned copy when needed.
         """
         # Only process packages if they exist
         if "packages" in data and isinstance(data["packages"], list):  # pylint: disable=too-many-nested-blocks
@@ -175,7 +177,9 @@ class ValidationEngine(ValidatorEngine):
         Returns:
             Combined validation result
         """
-        document = self._normalize_data(document)
+        # Validation normalizes enum values internally, but must not mutate the
+        # caller's document (including nested package external references).
+        document = self._normalize_data(deepcopy(document))
         all_messages: list[ValidationMessage] = []
         schema_valid = True
         semantic_valid = True
