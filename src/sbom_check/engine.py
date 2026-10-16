@@ -130,7 +130,7 @@ class SbomCheckEngine:
         return self.validate_dict(sbom_data, file_path)
 
     def validate_dict(
-        self, sbom_data: dict[str, Any], file_path: str | None = None
+        self, sbom_data: object, file_path: str | None = None
     ) -> SbomCheckResult:
         """Validate an SBOM document from dictionary.
 
@@ -141,6 +141,14 @@ class SbomCheckEngine:
         Returns:
             Complete validation result
         """
+        if not isinstance(sbom_data, dict):
+            return self._unsupported_result(
+                UnsupportedDocumentError(
+                    "Unsupported input: the JSON document must be a top-level object"
+                ),
+                file_path=file_path,
+            )
+
         detected = None
         selected_engine = self.engine
         profile_applicable = self._profile_applicable

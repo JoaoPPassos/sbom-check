@@ -210,7 +210,7 @@ exclude_lines = [
 
 [tool.tox]
 min_version = "4.0"
-env_list = ["ruff-check", "mypy", "pylint", "py310", "py311", "py312", "py313"]
+env_list = ["ruff-check", "mypy", "pylint", "py310", "py311", "py312", "py313", "py314"]
 runner = "uv-venv-lock-runner"
 parallel_show_output = true
 
@@ -238,6 +238,13 @@ commands = [
 
 [tool.tox.env.py313]
 description = "Run tests with Python 3.13"
+dependency_groups = ["dev"]
+commands = [
+    ["pytest", "tests/", "-v", "--cov=sbom_check", "--cov=spdx_validator", "--cov=cyclone_validator", "--cov=sbom_validator", "--cov-report=html", "--cov-report=term"]
+]
+
+[tool.tox.env.py314]
+description = "Run tests with Python 3.14"
 dependency_groups = ["dev"]
 commands = [
     ["pytest", "tests/", "-v", "--cov=sbom_check", "--cov=spdx_validator", "--cov=cyclone_validator", "--cov=sbom_validator", "--cov-report=html", "--cov-report=term"]

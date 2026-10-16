@@ -35,7 +35,9 @@ def test_returns_all_schema_errors_with_paths_and_descriptions() -> None:
         "$.components[0].type",
         "$.components[0].name",
     }
-    assert all(message.rule_id == "cyclonedx_schema_error" for message in result.messages)
+    assert all(
+        message.rule_id == "cyclonedx_schema_error" for message in result.messages
+    )
     assert any("Component Type" in message.message for message in result.messages)
     assert any("Component Name" in message.message for message in result.messages)
 
@@ -63,3 +65,18 @@ def test_validation_rejects_additional_properties() -> None:
     assert result.messages[0].severity.value == "ERROR"
     assert result.messages[0].rule_id == "cyclonedx_schema_error"
     assert result.messages[0].field_path == "$"
+
+
+def test_invalid_spdx_license_id_has_a_concise_message() -> None:
+    result = CycloneDXValidator().validate(
+        {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.7",
+            "metadata": {"licenses": [{"license": {"id": "NOT-A-LICENSE"}}]},
+        },
+        "1.7",
+    )
+
+    assert not result.is_valid
+    assert len(result.messages[0].message) < 512
+    assert result.messages[0].message == repr("NOT-A-LICENSE") + " is not a valid SPDX license ID"

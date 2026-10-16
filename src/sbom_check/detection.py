@@ -123,7 +123,7 @@ def _detect_cyclonedx(data: dict[str, Any]) -> DetectedDocument:
             rule_id="unsupported_version",
         )
 
-    from cyclone_validator.engine import CycloneDXValidationEngine  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
+    from cyclone_validator.engine import CycloneDXValidationEngine  # isort: skip  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
 
     return DetectedDocument(DocumentFormat.CYCLONEDX, version, CycloneDXValidationEngine)
 

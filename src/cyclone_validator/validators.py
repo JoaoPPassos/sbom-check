@@ -26,6 +26,9 @@ _SCHEMA_VERSIONS: dict[str, SchemaVersion] = {
 }
 
 
+_MAX_ENUM_ERROR_LENGTH = 512
+
+
 @dataclass(frozen=True, slots=True)
 class CycloneDXValidationResult:
     """Result returned by CycloneDX JSON Schema validation."""
@@ -80,9 +83,11 @@ class JsonSchemaValidator:
         for error in errors:
             raw_error = getattr(error, "data", None)
             path = _format_json_path(getattr(raw_error, "path", None))
-            message = getattr(raw_error, "message", None) or str(error)
+            message = _format_error_message(raw_error, error)
             schema = getattr(raw_error, "schema", None)
-            description = schema.get("description") if isinstance(schema, dict) else None
+            description = (
+                schema.get("description") if isinstance(schema, dict) else None
+            )
             title = schema.get("title") if isinstance(schema, dict) else None
 
             if title and description:
@@ -102,6 +107,32 @@ class JsonSchemaValidator:
             )
 
         return messages
+
+
+def _format_error_message(raw_error: Any, fallback_error: Any) -> str:
+    """Format schema errors without emitting massive enum definitions."""
+    message = getattr(raw_error, "message", None) or str(fallback_error)
+    if (enum_error := _find_enum_error(raw_error)) is not None:
+        path = list(getattr(enum_error, "path", ()))
+        if path[-2:] == ["license", "id"]:
+            instance = getattr(enum_error, "instance", None)
+            return repr(instance) + " is not a valid SPDX license ID"
+        message = getattr(enum_error, "message", None) or message
+
+    if len(message) > _MAX_ENUM_ERROR_LENGTH:
+        return f"{message[: _MAX_ENUM_ERROR_LENGTH - 3]}..."
+    return message
+
+
+def _find_enum_error(error: Any) -> Any | None:
+    """Find an enum validation error in a nested jsonschema error tree."""
+    if getattr(error, "validator", None) == "enum":
+        return error
+
+    for context_error in getattr(error, "context", ()):
+        if enum_error := _find_enum_error(context_error):
+            return enum_error
+    return None
 
 
 def _format_json_path(path: Any) -> str | None:

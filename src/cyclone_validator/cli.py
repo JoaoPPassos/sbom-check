@@ -99,7 +99,7 @@ def output_text(results: list[tuple[Path, CycloneDXValidationResult]]) -> None:
 )
 @click.option("--output-format", type=click.Choice(["text", "json"]), default="text")
 @click.option("--recursive", "-r", is_flag=True)
-@click.option("--pattern", default="*.json")
+@click.option("--pattern", default="*.cdx.json")
 @click.option("--jobs", "-j", type=click.IntRange(min=1), default=None)
 def main(paths: tuple[Path, ...], output_format: str, recursive: bool, pattern: str, jobs: int | None) -> None:
     """Validate CycloneDX JSON documents against their declared schemas."""

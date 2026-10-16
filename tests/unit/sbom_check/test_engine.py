@@ -466,7 +466,9 @@ def test_engine_auto_detects_cyclonedx_without_explicit_validator_class():
     assert result.profile_status is ProfileStatus.NOT_APPLICABLE
 
 
-def test_missing_spdx_version_preserves_validator_and_profile_diagnostics(sample_valid_spdx_document):
+def test_missing_spdx_version_preserves_validator_and_profile_diagnostics(
+    sample_valid_spdx_document,
+):
     document = deepcopy(sample_valid_spdx_document)
     document.pop("spdxVersion")
     document["packages"][0].pop("downloadLocation")
@@ -484,7 +486,9 @@ def test_missing_spdx_version_preserves_validator_and_profile_diagnostics(sample
     assert any("DESCRIBES" in message for message in messages)
 
 
-def test_unsupported_spdx_version_preserves_validator_diagnostics(sample_invalid_spdx_document):
+def test_unsupported_spdx_version_preserves_validator_diagnostics(
+    sample_invalid_spdx_document,
+):
     result = SbomCheckEngine().validate_dict(sample_invalid_spdx_document)
     messages = [message.message for message in result.messages]
 
@@ -494,12 +498,14 @@ def test_unsupported_spdx_version_preserves_validator_diagnostics(sample_invalid
 
 
 def test_cyclonedx_additional_properties_make_combined_result_invalid() -> None:
-    result = SbomCheckEngine().validate_dict({
-        "bomFormat": "CycloneDX",
-        "specVersion": "1.4",
-        "bogusRootField": True,
-        "components": [{"type": "library", "name": "example", "bogusField": True}],
-    })
+    result = SbomCheckEngine().validate_dict(
+        {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.4",
+            "bogusRootField": True,
+            "components": [{"type": "library", "name": "example", "bogusField": True}],
+        }
+    )
 
     assert result.document_format == "CycloneDX"
     assert result.core_valid is False
@@ -507,7 +513,8 @@ def test_cyclonedx_additional_properties_make_combined_result_invalid() -> None:
     assert result.summary.errors == 2
     assert result.summary.warnings == 1
     schema_messages = [
-        message for message in result.messages
+        message
+        for message in result.messages
         if message.rule_id == "cyclonedx_schema_error"
     ]
     assert len(schema_messages) == 2
@@ -525,4 +532,15 @@ def test_engine_returns_structured_result_for_unsupported_input():
     assert result.document_format == "unknown"
     assert result.core_valid is False
     assert result.profile_status is ProfileStatus.NOT_APPLICABLE
+    assert result.messages[0].rule_id == "unsupported_format"
+
+
+def test_explicit_validator_returns_structured_result_for_non_object_input():
+    result = SbomCheckEngine(
+        validator_class=CycloneDXValidationEngine,
+    ).validate_dict([])
+
+    assert not result.overall_valid
+    assert result.document_format == "unknown"
+    assert result.core_valid is False
     assert result.messages[0].rule_id == "unsupported_format"

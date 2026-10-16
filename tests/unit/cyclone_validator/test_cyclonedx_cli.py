@@ -36,7 +36,11 @@ def test_valid_document_passes_schema_validation():
 
     assert result.exit_code == 0
     payload = json.loads(result.output)
-    assert payload["summary"] == {"total_files": 1, "valid_files": 1, "invalid_files": 0}
+    assert payload["summary"] == {
+        "total_files": 1,
+        "valid_files": 1,
+        "invalid_files": 0,
+    }
     assert payload["results"][0]["is_valid"] is True
     assert payload["results"][0]["messages"] == []
 
@@ -79,10 +83,10 @@ def test_unsupported_version_is_reported_as_structured_error(tmp_path):
 def test_recursive_validation_reports_summary_counts(tmp_path):
     input_directory = tmp_path / "documents"
     input_directory.mkdir()
-    (input_directory / "valid.json").write_bytes(
+    (input_directory / "valid.cdx.json").write_bytes(
         (FIXTURES / "valid-1.6.json").read_bytes()
     )
-    (input_directory / "invalid.json").write_bytes(
+    (input_directory / "invalid.cdx.json").write_bytes(
         (FIXTURES / "invalid-1.6.json").read_bytes()
     )
 
@@ -95,11 +99,16 @@ def test_recursive_validation_reports_summary_counts(tmp_path):
 
     assert result.exit_code == 1
     payload = json.loads(result.output)
-    assert payload["summary"] == {"total_files": 2, "valid_files": 1, "invalid_files": 1}
+    assert payload["summary"] == {
+        "total_files": 2,
+        "valid_files": 1,
+        "invalid_files": 1,
+    }
     assert [Path(item["file"]).name for item in payload["results"]] == [
-        "invalid.json",
-        "valid.json",
+        "invalid.cdx.json",
+        "valid.cdx.json",
     ]
+
 
 @pytest.mark.parametrize("jobs", ["0", "-1"])
 def test_jobs_must_be_positive(tmp_path, jobs):
@@ -117,6 +126,27 @@ def test_collection_deduplicates_paths(tmp_path):
     document = tmp_path / "document.json"
     document.write_text("{}")
 
-    files = collect_cyclonedx_files((document, tmp_path), recursive=False, pattern="*.json")
+    files = collect_cyclonedx_files(
+        (document, tmp_path), recursive=False, pattern="*.json"
+    )
 
     assert files == [document.resolve()]
+
+
+def test_directory_scan_ignores_unrelated_json_files(tmp_path):
+    input_directory = tmp_path / "documents"
+    input_directory.mkdir()
+    (input_directory / "supplier.cdx.json").write_bytes(
+        (FIXTURES / "valid-1.7.json").read_bytes()
+    )
+    (input_directory / "config.json").write_text("{}")
+
+    result = invoke_cli("--output-format", "json", str(input_directory))
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["summary"] == {
+        "total_files": 1,
+        "valid_files": 1,
+        "invalid_files": 0,
+    }
