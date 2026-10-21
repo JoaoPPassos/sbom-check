@@ -56,6 +56,20 @@ class SemanticValidator:
 class JsonSchemaValidator:
     """Validate CycloneDX documents against version-specific JSON schemas."""
 
+    def __init__(self) -> None:
+        """Initialize the per-schema-version strict validator cache."""
+        self._strict_validators: dict[SchemaVersion, JsonStrictValidator] = {}
+
+    def _get_strict_validator(
+        self, schema_version: SchemaVersion
+    ) -> JsonStrictValidator:
+        """Return the compiled strict validator for a schema version."""
+        if schema_version not in self._strict_validators:
+            self._strict_validators[schema_version] = JsonStrictValidator(
+                schema_version
+            )
+        return self._strict_validators[schema_version]
+
     def validate(
         self, document: dict[str, Any], spec_version: str
     ) -> CycloneDXValidationResult:
@@ -63,7 +77,7 @@ class JsonSchemaValidator:
         if (schema_version := _SCHEMA_VERSIONS.get(spec_version)) is None:
             raise ValueError(f"Unsupported CycloneDX schema version: {spec_version}")
 
-        validator = JsonStrictValidator(schema_version)
+        validator = self._get_strict_validator(schema_version)
         errors = validator.validate_str(json.dumps(document), all_errors=True)
         messages = self._convert_errors(errors)
         # Additional properties are schema violations and must invalidate the document.

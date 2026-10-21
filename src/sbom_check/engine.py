@@ -50,9 +50,28 @@ class SbomCheckEngine:
         self.config = config
         self._validator_class = validator_class
 
-        # Keep an explicitly supplied validator ready for use. Otherwise the
-        # document detector selects the appropriate validator per document.
-        self.engine = (validator_class or ValidationEngine)()
+        # Engines are instantiated only when their document format is used and
+        # then retained for subsequent documents of that format.
+        self._engines: dict[type[ValidatorEngine], ValidatorEngine] = {}
+        self._engine_override: ValidatorEngine | None = None
+
+    def _get_engine(self, validator_class: type[ValidatorEngine]) -> ValidatorEngine:
+        """Return the cached instance for a validator class."""
+        if validator_class not in self._engines:
+            self._engines[validator_class] = validator_class()
+        return self._engines[validator_class]
+
+    @property
+    def engine(self) -> ValidatorEngine:
+        """Configured core validator, instantiated lazily."""
+        if self._engine_override is not None:
+            return self._engine_override
+        return self._get_engine(self._validator_class or ValidationEngine)
+
+    @engine.setter
+    def engine(self, value: ValidatorEngine) -> None:
+        """Override the configured core validator instance."""
+        self._engine_override = value
 
     @property
     def spdx_engine(self) -> Any:
@@ -180,7 +199,7 @@ class SbomCheckEngine:
         selected_engine = (
             self.engine
             if self._validator_class is not None
-            else detected.validator_class()
+            else self._get_engine(detected.validator_class)
         )
         profile_applicable = detected.format is DocumentFormat.SPDX
 

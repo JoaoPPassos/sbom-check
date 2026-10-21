@@ -6,7 +6,10 @@ import json
 from unittest.mock import patch
 
 from cyclone_validator import CycloneDXValidationEngine, SemanticValidator
-from cyclone_validator.validators import CycloneDXValidationResult
+from cyclone_validator.validators import (
+    CycloneDXValidationResult,
+    JsonSchemaValidator,
+)
 from sbom_check.models import ValidationMessage, ValidationSeverity
 
 
@@ -23,13 +26,27 @@ def test_default_engine_enables_both_validation_stages() -> None:
     assert engine.semantic_validator is not None
 
 
+def test_schema_validators_are_cached_by_spec_version() -> None:
+    with patch("cyclone_validator.validators.JsonStrictValidator") as strict_validator:
+        strict_validator.return_value.validate_str.return_value = []
+        validator = JsonSchemaValidator()
+
+        validator.validate(_valid_document(), "1.7")
+        validator.validate(_valid_document(), "1.7")
+        validator.validate(_valid_document(), "1.6")
+
+    assert strict_validator.call_count == 2
+
+
 def test_schema_only_configuration_does_not_run_semantic_validation() -> None:
     engine = CycloneDXValidationEngine(
         enable_schema_validation=True,
         enable_semantic_validation=False,
     )
 
-    with patch.object(engine.schema_validator, "validate", wraps=engine.schema_validator.validate) as schema_validate:
+    with patch.object(
+        engine.schema_validator, "validate", wraps=engine.schema_validator.validate
+    ) as schema_validate:
         result = engine.validate_dict(_valid_document())
 
     assert result.is_valid
@@ -70,7 +87,9 @@ def test_schema_failure_skips_semantic_validation() -> None:
         result = engine.validate_dict(_valid_document())
 
     assert not result.is_valid
-    assert any(message.rule_id == "semantic_validation_skipped" for message in result.messages)
+    assert any(
+        message.rule_id == "semantic_validation_skipped" for message in result.messages
+    )
     semantic_validate.assert_not_called()
 
 

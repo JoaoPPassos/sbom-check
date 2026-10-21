@@ -11,8 +11,14 @@ import pytest
 
 from cyclone_validator.engine import CycloneDXValidationEngine
 from sbom_check.config.loader import ConfigLoader
+from sbom_check.detection import DetectedDocument
 from sbom_check.engine import SbomCheckEngine
-from sbom_check.models import ProfileStatus, SbomCheckResult, ValidationSeverity
+from sbom_check.models import (
+    DocumentFormat,
+    ProfileStatus,
+    SbomCheckResult,
+    ValidationSeverity,
+)
 from spdx_validator.engine import ValidationEngine
 
 
@@ -29,6 +35,30 @@ def test_deprecated_spdx_engine_alias_returns_core_engine():
 
     with pytest.warns(DeprecationWarning, match="spdx_engine"):
         assert engine.spdx_engine is engine.engine
+
+
+def test_auto_detected_validator_is_built_once_and_reused(
+    sample_valid_spdx_document,
+):
+    """Auto-detection retains one validator instance per validator class."""
+
+    class CountingValidator:
+        instances = 0
+
+        def __init__(self) -> None:
+            type(self).instances += 1
+
+        def validate_dict(self, document):
+            del document
+            return Mock(is_valid=True, messages=[])
+
+    detected = DetectedDocument(DocumentFormat.SPDX, "2.3", CountingValidator)
+    with patch("sbom_check.engine.detect_document", return_value=detected):
+        engine = SbomCheckEngine()
+        engine.validate_dict(sample_valid_spdx_document)
+        engine.validate_dict(sample_valid_spdx_document)
+
+    assert CountingValidator.instances == 1
 
 
 def test_engine_initialization_with_config():
