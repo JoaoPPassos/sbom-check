@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
@@ -78,7 +77,9 @@ class JsonSchemaValidator:
             raise ValueError(f"Unsupported CycloneDX schema version: {spec_version}")
 
         validator = self._get_strict_validator(schema_version)
-        errors = validator.validate_str(json.dumps(document), all_errors=True)
+        # JsonStrictValidator exposes the already-compiled Draft 7 validator.
+        # Validate the parsed document directly to avoid serializing and reparsing it.
+        errors = validator._validator.iter_errors(document)  # pylint: disable=protected-access
         messages = self._convert_errors(errors)
         # Additional properties are schema violations and must invalidate the document.
         return CycloneDXValidationResult(is_valid=not messages, messages=messages)
@@ -95,7 +96,7 @@ class JsonSchemaValidator:
 
         messages: list[ValidationMessage] = []
         for error in errors:
-            raw_error = getattr(error, "data", None)
+            raw_error = getattr(error, "data", error)
             path = _format_json_path(getattr(raw_error, "path", None))
             message = _format_error_message(raw_error, error)
             schema = getattr(raw_error, "schema", None)

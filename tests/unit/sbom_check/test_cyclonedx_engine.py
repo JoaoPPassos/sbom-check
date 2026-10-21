@@ -109,6 +109,24 @@ def test_invalid_json_returns_validation_message() -> None:
     assert result.messages[0].rule_id == "json_parse_error"
 
 
+def test_dict_validation_rejects_non_object_input() -> None:
+    result = CycloneDXValidationEngine().validate_dict([])
+
+    assert not result.is_valid
+    assert result.messages[0].rule_id == "invalid_document_type"
+
+
+def test_dict_validation_returns_error_for_non_serializable_input() -> None:
+    result = CycloneDXValidationEngine().validate_dict(
+        {"bomFormat": "CycloneDX", "specVersion": "1.7", "components": {1, 2}}
+    )
+
+    assert not result.is_valid
+    assert any(
+        message.rule_id == "cyclonedx_schema_error" for message in result.messages
+    )
+
+
 def test_unsupported_version_returns_validation_message() -> None:
     result = CycloneDXValidationEngine().validate_json_string(
         '{"bomFormat":"CycloneDX","specVersion":"1.2"}'

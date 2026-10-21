@@ -50,9 +50,7 @@ class CycloneDXValidationEngine(ValidatorEngine):
 
         if self.enable_schema_validation and self.schema_validator:
             try:
-                schema_result = self.schema_validator.validate(
-                    document, spec_version
-                )
+                schema_result = self.schema_validator.validate(document, spec_version)
             except ValueError as error:
                 return CycloneDXValidationResult(
                     is_valid=False,
@@ -68,9 +66,7 @@ class CycloneDXValidationEngine(ValidatorEngine):
             schema_valid = schema_result.is_valid
 
         if self.enable_semantic_validation and self.semantic_validator and schema_valid:
-            semantic_result = self.semantic_validator.validate(
-                document, spec_version
-            )
+            semantic_result = self.semantic_validator.validate(document, spec_version)
             messages.extend(semantic_result.messages)
             semantic_valid = semantic_result.is_valid
         elif self.enable_semantic_validation and not schema_valid:
@@ -134,9 +130,20 @@ class CycloneDXValidationEngine(ValidatorEngine):
         return self.validate_dict(document, spec_version)
 
     def validate_dict(
-        self, document: dict[str, Any], spec_version: str | None = None
+        self, document: object, spec_version: str | None = None
     ) -> CycloneDXValidationResult:
         """Validate a CycloneDX document from a dictionary."""
+        if not isinstance(document, dict):
+            return CycloneDXValidationResult(
+                is_valid=False,
+                messages=[
+                    ValidationMessage(
+                        severity=ValidationSeverity.ERROR,
+                        message="CycloneDX document must be an object",
+                        rule_id="invalid_document_type",
+                    )
+                ],
+            )
         version = spec_version or document.get("specVersion")
         if not isinstance(version, str):
             return CycloneDXValidationResult(
