@@ -84,6 +84,16 @@ class TestValidationEngine:
         assert engine.schema_validator is None
         assert engine.semantic_validator is not None
 
+    def test_validate_rejects_mismatched_spec_version(
+        self, minimal_spdx_json: str
+    ) -> None:
+        document = json.loads(minimal_spdx_json)
+
+        result = ValidationEngine().validate(document, spec_version="SPDX-2.2")
+
+        assert not result.is_valid
+        assert result.messages[0].rule_id == "spec_version_mismatch"
+
     def test_validate_json_string_invalid_json(self) -> None:
         """Test validation of invalid JSON string."""
         engine = ValidationEngine()

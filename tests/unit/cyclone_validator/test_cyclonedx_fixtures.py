@@ -68,8 +68,14 @@ def test_invalid_fixture_reports_all_schema_failures(version: str) -> None:
     result = CycloneDXValidationEngine().validate_dict(document)
 
     assert not result.is_valid
-    assert {message.field_path for message in result.messages} >= EXPECTED_INVALID_PATHS[version]
-    assert all(message.rule_id == "cyclonedx_schema_error" for message in result.messages if message.rule_id != "semantic_validation_skipped")
+    assert {
+        message.field_path for message in result.messages
+    } >= EXPECTED_INVALID_PATHS[version]
+    assert all(
+        message.rule_id == "cyclonedx_schema_error"
+        for message in result.messages
+        if message.rule_id != "semantic_validation_skipped"
+    )
 
 
 @pytest.mark.parametrize(("fixture_version", "schema_version"), SCHEMA_PAIRS)
@@ -113,9 +119,7 @@ def test_engine_uses_declared_schema_for_each_version(
         selected_versions.append(schema_version)
         return original_validator(schema_version)
 
-    monkeypatch.setattr(
-        cyclone_validators, "JsonStrictValidator", spy_validator
-    )
+    monkeypatch.setattr(cyclone_validators, "JsonStrictValidator", spy_validator)
 
     result = CycloneDXValidationEngine().validate_dict(document)
 

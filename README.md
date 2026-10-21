@@ -11,7 +11,7 @@ A multi-format SBOM validator supporting SPDX 2.3 and CycloneDX JSON documents. 
 ## Features
 
 - **Multi-format validation**: Automatic detection and validation of SPDX 2.3 and CycloneDX JSON 1.3–1.7 documents
-- **CLI Tools**: Both `sbom-check`, `spdx-validate`, and `cyclonedx-validate` commands available
+- **CLI Tools**: The `sbom-check`, `spdx-validate`, and `cyclonedx-validate` commands are available
 - **Configurable Requirements**: YAML-based configuration system with inheritance
 - **Multiple Profiles**: Built-in profiles for different use cases (basic, default, automotive, etc.)
 - **Rich Reporting**: Text and JSON output formats with detailed error messages
@@ -114,7 +114,6 @@ Example JSON result:
   "profile_valid": null
 }
 ```
-
 
 ## Configuration Profiles
 

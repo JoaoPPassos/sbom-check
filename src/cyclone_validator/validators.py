@@ -125,8 +125,7 @@ class JsonSchemaValidator:
 
 def _most_relevant_error(error: Any) -> Any:
     """Return the deepest actionable nested schema error, when available."""
-    context = getattr(error, "context", ())
-    if not context:
+    if not (context := getattr(error, "context", ())):
         return error
 
     candidates = list(_leaf_errors(context))
@@ -146,8 +145,7 @@ def _most_relevant_error(error: Any) -> Any:
 def _leaf_errors(errors: Iterable[Any]) -> Iterable[Any]:
     """Yield leaf errors from a nested JSON Schema error tree."""
     for error in errors:
-        context = getattr(error, "context", ())
-        if context:
+        if context := getattr(error, "context", ()):
             yield from _leaf_errors(context)
         else:
             yield error

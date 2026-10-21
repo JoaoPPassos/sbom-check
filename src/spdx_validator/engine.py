@@ -54,7 +54,22 @@ class ValidationEngine(ValidatorEngine):
         self, document: dict[str, Any], spec_version: str = "SPDX-2.3"
     ) -> ValidationResult:
         """Validate a parsed SPDX document through the engine pipeline."""
-        del spec_version
+        if document.get("spdxVersion") != spec_version:
+            return ValidationResult(
+                is_valid=False,
+                messages=[
+                    ValidationMessage(
+                        severity=ValidationSeverity.ERROR,
+                        message=(
+                            "Document SPDX version does not match the requested "
+                            f"version {spec_version}"
+                        ),
+                        rule_id="spec_version_mismatch",
+                    )
+                ],
+                schema_valid=False,
+                semantic_valid=False,
+            )
         return self.validate_dict(document)
 
     def validate_json_string(
