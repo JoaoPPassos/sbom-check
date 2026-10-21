@@ -4,10 +4,12 @@
 
 import json
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
 
+import cyclone_validator.cli as cyclone_cli
 from cyclone_validator.cli import collect_cyclonedx_files, main
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "cyclonedx"
@@ -16,6 +18,23 @@ FIXTURES = Path(__file__).parents[2] / "fixtures" / "cyclonedx"
 def invoke_cli(*arguments: str):
     """Invoke the CLI through Click's test runner."""
     return CliRunner().invoke(main, list(arguments))
+
+
+def test_worker_reuses_its_validation_engine() -> None:
+    cyclone_cli._worker_state.clear()
+    try:
+        with patch("cyclone_validator.cli.CycloneDXValidationEngine") as engine_class:
+            engine = engine_class.return_value
+            engine.validate_file.return_value = Mock()
+
+            cyclone_cli._initialize_worker()
+            cyclone_cli.validate_single_file(Path("first.cdx.json"))
+            cyclone_cli.validate_single_file(Path("second.cdx.json"))
+
+        engine_class.assert_called_once_with(enable_semantic_validation=False)
+        assert engine.validate_file.call_count == 2
+    finally:
+        cyclone_cli._worker_state.clear()
 
 
 def test_help_describes_cyclonedx_validation():

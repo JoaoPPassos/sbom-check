@@ -13,7 +13,7 @@ import json
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import click
 from rich.console import Console
@@ -28,11 +28,30 @@ from sbom_check.config.loader import ConfigLoader
 from sbom_check.engine import SbomCheckEngine
 from sbom_check.models import ProfileStatus, ValidationSeverity
 
+if TYPE_CHECKING:
+    from sbom_check.config.models import SbomCheckConfig
+
 console = Console()
 DEFAULT_SBOM_PATTERN = "*.{spdx,cdx}.json"
 
 
 MAX_PATTERN_EXPANSIONS = 1024
+_worker_state: dict[str, SbomCheckEngine] = {}
+
+
+def _load_config(profile: str, config_path: str | None) -> SbomCheckConfig:
+    """Load the selected profile and optional configuration file."""
+    loader = ConfigLoader()
+    return (
+        loader.load_with_profile(profile, config_path)
+        if config_path
+        else loader.load_profile(profile)
+    )
+
+
+def _initialize_worker(sbom_config: SbomCheckConfig) -> None:
+    """Create the reusable validation engine for one worker process."""
+    _worker_state["engine"] = SbomCheckEngine(sbom_config)
 
 
 def _expand_pattern(pattern: str) -> tuple[str, ...]:
@@ -128,16 +147,9 @@ def validate_single_file(
     config_path: str | None,
 ) -> tuple[Path, Any]:
     """Validate a single SBOM file. Used for parallel processing."""
-    loader = ConfigLoader()
-
-    # Load configuration
-    if config_path:
-        sbom_config = loader.load_with_profile(profile, config_path)
-    else:
-        sbom_config = loader.load_profile(profile)
-
-    # Detection and validator selection are owned by SbomCheckEngine.
-    engine = SbomCheckEngine(sbom_config)
+    if (engine := _worker_state.get("engine")) is None:
+        _initialize_worker(_load_config(profile, config_path))
+        engine = _worker_state["engine"]
     result = engine.validate_file(file_path)
     _ensure_result_document_metadata(result)
     return file_path, result
@@ -349,11 +361,7 @@ def main(  # noqa: PLR0917,RUF100
             # Single file - no need for parallel processing
             file_path = files_to_validate[0]
 
-            # Load configuration
-            if config:
-                sbom_config = loader.load_with_profile(profile, config)
-            else:
-                sbom_config = loader.load_profile(profile)
+            sbom_config = _load_config(profile, config)
 
             # Detection and validator selection are owned by SbomCheckEngine.
             engine = SbomCheckEngine(sbom_config)
@@ -365,7 +373,12 @@ def main(  # noqa: PLR0917,RUF100
                 overall_valid = False
         else:
             # Multiple files - use parallel processing
-            with ProcessPoolExecutor(max_workers=jobs) as executor:
+            sbom_config = _load_config(profile, config)
+            with ProcessPoolExecutor(
+                max_workers=jobs,
+                initializer=_initialize_worker,
+                initargs=(sbom_config,),
+            ) as executor:
                 # Submit all validation tasks
                 future_to_file = {
                     executor.submit(

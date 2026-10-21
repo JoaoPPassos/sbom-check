@@ -19,6 +19,16 @@ if TYPE_CHECKING:
     from cyclone_validator.models import CycloneDXValidationResult, ValidationMessage
 
 
+_worker_state: dict[str, CycloneDXValidationEngine] = {}
+
+
+def _initialize_worker() -> None:
+    """Create the reusable validation engine for one worker process."""
+    _worker_state["engine"] = CycloneDXValidationEngine(
+        enable_semantic_validation=False
+    )
+
+
 def collect_cyclonedx_files(
     paths: tuple[Path, ...], recursive: bool, pattern: str
 ) -> list[Path]:
@@ -36,7 +46,9 @@ def collect_cyclonedx_files(
 
 def validate_single_file(file_path: Path) -> tuple[Path, CycloneDXValidationResult]:
     """Validate one CycloneDX document using schema validation only."""
-    engine = CycloneDXValidationEngine(enable_semantic_validation=False)
+    if (engine := _worker_state.get("engine")) is None:
+        _initialize_worker()
+        engine = _worker_state["engine"]
     return file_path, engine.validate_file(file_path)
 
 
@@ -119,7 +131,10 @@ def main(
     if len(files) == 1:
         results = [validate_single_file(files[0])]
     else:
-        with ProcessPoolExecutor(max_workers=jobs) as executor:
+        with ProcessPoolExecutor(
+            max_workers=jobs,
+            initializer=_initialize_worker,
+        ) as executor:
             futures = [executor.submit(validate_single_file, path) for path in files]
             results = [future.result() for future in as_completed(futures)]
         results.sort(key=lambda item: item[0])

@@ -6,12 +6,14 @@
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
 from click.testing import CliRunner
 
+import sbom_check.cli as sbom_cli
 from sbom_check.cli import (
     _expand_pattern,
     _print_json_result,
@@ -19,6 +21,24 @@ from sbom_check.cli import (
     collect_sbom_files,
     main,
 )
+
+
+def test_worker_reuses_its_configured_engine() -> None:
+    sbom_cli._worker_state.clear()
+    try:
+        config = Mock()
+        with patch("sbom_check.cli.SbomCheckEngine") as engine_class:
+            engine = engine_class.return_value
+            engine.validate_file.return_value = Mock()
+
+            sbom_cli._initialize_worker(config)
+            sbom_cli.validate_single_file(Path("first.spdx.json"), "default", None)
+            sbom_cli.validate_single_file(Path("second.spdx.json"), "default", None)
+
+        engine_class.assert_called_once_with(config)
+        assert engine.validate_file.call_count == 2
+    finally:
+        sbom_cli._worker_state.clear()
 
 
 def test_expand_pattern_supports_multiple_brace_groups():
@@ -42,7 +62,6 @@ def test_expand_pattern_rejects_unmatched_closing_brace():
         _expand_pattern("*.}a{.json")
 
 
-
 def test_cli_reports_malformed_pattern_without_traceback(tmp_path):
     """Malformed --pattern input is reported as a user-facing CLI error."""
     result = CliRunner().invoke(
@@ -53,7 +72,6 @@ def test_cli_reports_malformed_pattern_without_traceback(tmp_path):
     assert result.exit_code == 3
     assert "Error: Invalid brace pattern" in result.output
     assert "Traceback" not in result.output
-
 
 
 @pytest.mark.parametrize(
@@ -91,7 +109,9 @@ def test_expand_pattern_matrix(pattern, expected):
 )
 def test_expand_pattern_rejects_malformed_patterns(pattern):
     """Every malformed brace shape raises a useful error for the full pattern."""
-    with pytest.raises(ValueError, match=re.escape(f"Invalid brace pattern {pattern!r}")):
+    with pytest.raises(
+        ValueError, match=re.escape(f"Invalid brace pattern {pattern!r}")
+    ):
         _expand_pattern(pattern)
 
 
@@ -100,7 +120,6 @@ def test_expand_pattern_rejects_pathological_expansion():
     pattern = "".join("{a,b}" for _ in range(11))
     with pytest.raises(ValueError, match="more than 1024 patterns"):
         _expand_pattern(pattern)
-
 
 
 @pytest.mark.parametrize(
@@ -256,7 +275,9 @@ def test_cli_validate_file_not_found():
     runner = CliRunner()
     result = runner.invoke(main, ["nonexistent.json"])
 
-    assert result.exit_code == 2  # Click returns 2 for invalid arguments (file not found)
+    assert (
+        result.exit_code == 2
+    )  # Click returns 2 for invalid arguments (file not found)
 
 
 @patch("sbom_check.cli.SbomCheckEngine")
@@ -529,6 +550,7 @@ def test_cli_error_handling(tmp_path):
 
 # New tests for directory traversal and enhanced functionality
 
+
 def test_cli_validate_directory_non_recursive(tmp_path):
     """Test directory scanning without recursion."""
     runner = CliRunner()
@@ -637,9 +659,11 @@ def test_default_scan_pattern_includes_spdx_and_cyclonedx(tmp_path):
     (tmp_path / "config.json").write_text("{}")
     (tmp_path / "settings.json").write_text("{}")
 
-    files = collect_sbom_files((tmp_path,), recursive=False, pattern="*.{spdx,cdx}.json")
+    files = collect_sbom_files(
+        (tmp_path,), recursive=False, pattern="*.{spdx,cdx}.json"
+    )
 
-    assert [file.name for file in files] == ['bom.cdx.json', 'bom.spdx.json']
+    assert [file.name for file in files] == ["bom.cdx.json", "bom.spdx.json"]
 
 
 def test_cli_validate_custom_pattern(tmp_path):
@@ -843,7 +867,9 @@ def test_cli_multiple_files_json_output(tmp_path):
         mock_engine_class.return_value = mock_engine
 
         with patch("sbom_check.cli.ProcessPoolExecutor", ThreadPoolExecutor):
-            result = runner.invoke(main, ["--output-format", "json", str(file1), str(file2)])
+            result = runner.invoke(
+                main, ["--output-format", "json", str(file1), str(file2)]
+            )
 
         # Should contain JSON summary for multiple files
         assert result.exit_code == 0
@@ -895,6 +921,7 @@ def test_cli_mixed_validation_results(tmp_path):
         invalid_result.get_messages_by_severity.return_value = []
 
         mock_engine = Mock()
+
         # Return different results based on file path
         def mock_validate_file(file_path):
             if file_path.name == "valid.spdx.json":
@@ -988,7 +1015,9 @@ def test_text_output_uses_detected_format_and_marks_profile_not_applicable():
     with patch("sbom_check.cli.console") as mocked_console:
         _print_text_result(result, "bom.json")
 
-    output = "\n".join(str(call.args[0]) for call in mocked_console.print.call_args_list)
+    output = "\n".join(
+        str(call.args[0]) for call in mocked_console.print.call_args_list
+    )
     assert "CycloneDX 1.7 Validation: PASSED" in output
     assert "Profile Validation: NOT APPLICABLE" in output
     assert "SPDX 2.3 Validation" not in output
@@ -1010,6 +1039,8 @@ def test_collect_sbom_files_deduplicates_brace_matches(tmp_path):
     document = tmp_path / "bom.spdx.json"
     document.write_text("{}")
 
-    files = collect_sbom_files((tmp_path,), recursive=False, pattern="*.{spdx,spdx}.json")
+    files = collect_sbom_files(
+        (tmp_path,), recursive=False, pattern="*.{spdx,spdx}.json"
+    )
 
     assert files == [document.resolve()]
