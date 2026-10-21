@@ -174,7 +174,7 @@ class SbomCheckEngine:
 
         selected_engine = (
             self.engine
-            if self._validator_class is not None
+            if self._engine_override is not None or self._validator_class is not None
             else self._get_engine(detected.validator_class)
         )
         profile_applicable = detected.format is DocumentFormat.SPDX

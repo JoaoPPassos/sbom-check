@@ -37,6 +37,34 @@ def test_deprecated_spdx_engine_alias_returns_core_engine():
         assert engine.spdx_engine is engine.engine
 
 
+def test_engine_override_is_used_in_auto_detect_mode(sample_valid_spdx_document):
+    """An injected core engine takes precedence over format auto-detection."""
+    replacement_engine = Mock()
+    replacement_engine.validate_dict.return_value = Mock(is_valid=True, messages=[])
+    engine = SbomCheckEngine()
+    engine.engine = replacement_engine
+
+    engine.validate_dict(sample_valid_spdx_document)
+
+    replacement_engine.validate_dict.assert_called_once_with(sample_valid_spdx_document)
+
+
+def test_deprecated_spdx_engine_override_is_used_in_auto_detect_mode(
+    sample_valid_spdx_document,
+):
+    """The deprecated setter continues to override auto-detected validators."""
+    replacement_engine = Mock()
+    replacement_engine.validate_dict.return_value = Mock(is_valid=True, messages=[])
+    engine = SbomCheckEngine()
+
+    with pytest.warns(DeprecationWarning, match="spdx_engine"):
+        engine.spdx_engine = replacement_engine
+
+    engine.validate_dict(sample_valid_spdx_document)
+
+    replacement_engine.validate_dict.assert_called_once_with(sample_valid_spdx_document)
+
+
 def test_auto_detected_validator_is_built_once_and_reused(
     sample_valid_spdx_document,
 ):
