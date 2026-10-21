@@ -11,6 +11,7 @@ from cyclone_validator.engine import CycloneDXValidationEngine
 from sbom_check.config.loader import ConfigLoader
 from sbom_check.engine import SbomCheckEngine
 from sbom_check.models import ProfileStatus, SbomCheckResult, ValidationSeverity
+from spdx_validator.engine import ValidationEngine
 
 
 def test_engine_initialization():
@@ -426,6 +427,36 @@ def test_engine_instantiates_selected_validator_class():
     engine = SbomCheckEngine(config, validator_class=CycloneDXValidationEngine)
 
     assert isinstance(engine.engine, CycloneDXValidationEngine)
+
+
+def test_explicit_spdx_validator_subclass_preserves_spdx_metadata_and_profile(
+    sample_valid_spdx_document,
+):
+    """An explicit validator override does not determine the input format."""
+
+    class CustomValidationEngine(ValidationEngine):
+        pass
+
+    result = SbomCheckEngine(validator_class=CustomValidationEngine).validate_dict(
+        sample_valid_spdx_document
+    )
+
+    assert result.document_format == "SPDX"
+    assert result.spec_version == "2.3"
+    assert result.profile_status is not ProfileStatus.NOT_APPLICABLE
+    assert result.profile_name == "Default SBOM Requirements"
+
+
+def test_explicit_validator_uses_declared_spdx_22_version(
+    sample_invalid_spdx_document,
+):
+    """SPDX metadata comes from the document rather than a validator default."""
+    result = SbomCheckEngine(validator_class=ValidationEngine).validate_dict(
+        sample_invalid_spdx_document
+    )
+
+    assert result.document_format == "SPDX"
+    assert result.spec_version == "2.2"
 
 
 def test_cyclonedx_schema_paths_are_preserved_in_combined_result():

@@ -49,10 +49,9 @@ class SbomCheckEngine:
         self.config = config
         self._validator_class = validator_class
 
-        # Use core validation by default until document detection selects another engine.
-        selected_validator = validator_class or ValidationEngine
-        self.engine = selected_validator()
-        self._profile_applicable = selected_validator is ValidationEngine
+        # Keep an explicitly supplied validator ready for use. Otherwise the
+        # document detector selects the appropriate validator per document.
+        self.engine = (validator_class or ValidationEngine)()
 
     def validate_file(self, file_path: Path | str) -> SbomCheckResult:
         """Validate an SBOM document from file.
@@ -149,21 +148,20 @@ class SbomCheckEngine:
                 file_path=file_path,
             )
 
-        detected = None
-        selected_engine = self.engine
-        profile_applicable = self._profile_applicable
-        document_format = DocumentFormat.SPDX if profile_applicable else DocumentFormat.CYCLONEDX
-        spec_version = "2.3" if profile_applicable else sbom_data.get("specVersion")
-        if self._validator_class is None:
-            try:
-                detected = detect_document(sbom_data)
-            except UnsupportedDocumentError as error:
-                return self._unsupported_result(error, file_path=file_path)
+        # Detection owns document metadata and profile applicability, even when
+        # a caller overrides the validator. The override changes only which
+        # core validator executes; it must not relabel the input document.
+        try:
+            detected = detect_document(sbom_data)
+        except UnsupportedDocumentError as error:
+            return self._unsupported_result(error, file_path=file_path)
 
-            selected_engine = detected.validator_class()
-            profile_applicable = detected.format is DocumentFormat.SPDX
-            document_format = detected.format
-            spec_version = detected.spec_version
+        selected_engine = (
+            self.engine
+            if self._validator_class is not None
+            else detected.validator_class()
+        )
+        profile_applicable = detected.format is DocumentFormat.SPDX
 
         # Run the selected format engine.
         core_result = selected_engine.validate_dict(sbom_data)
@@ -181,8 +179,8 @@ class SbomCheckEngine:
             profile_result=profile_result,
             profile_name=self.config.metadata.name,
             file_path=file_path,
-            document_format=document_format,
-            spec_version=spec_version,
+            document_format=detected.format,
+            spec_version=detected.spec_version,
         )
 
         return combined_result
