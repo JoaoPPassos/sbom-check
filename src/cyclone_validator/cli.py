@@ -9,15 +9,14 @@ import json
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
 from cyclone_validator.engine import CycloneDXValidationEngine
-from cyclone_validator.models import (
-    CycloneDXValidationResult,
-    ValidationMessage,
-    ValidationSeverity,
-)
+
+if TYPE_CHECKING:
+    from cyclone_validator.models import CycloneDXValidationResult, ValidationMessage
 
 
 def collect_cyclonedx_files(
@@ -38,19 +37,7 @@ def collect_cyclonedx_files(
 def validate_single_file(file_path: Path) -> tuple[Path, CycloneDXValidationResult]:
     """Validate one CycloneDX document using schema validation only."""
     engine = CycloneDXValidationEngine(enable_semantic_validation=False)
-    try:
-        return file_path, engine.validate_file(file_path)
-    except ValueError as error:
-        return file_path, CycloneDXValidationResult(
-            is_valid=False,
-            messages=[
-                ValidationMessage(
-                    severity=ValidationSeverity.ERROR,
-                    message=str(error),
-                    rule_id="unsupported_version",
-                )
-            ],
-        )
+    return file_path, engine.validate_file(file_path)
 
 
 def _message_dict(message: ValidationMessage) -> dict[str, str | None]:

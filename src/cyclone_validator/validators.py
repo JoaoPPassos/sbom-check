@@ -12,6 +12,7 @@ from typing import Any
 
 from cyclonedx.schema import SchemaVersion
 from cyclonedx.validation.json import JsonStrictValidator
+from jsonschema.exceptions import best_match
 
 from cyclone_validator.models import (
     CycloneDXValidationResult,
@@ -91,9 +92,12 @@ class JsonSchemaValidator:
 
         messages: list[ValidationMessage] = []
         for error in errors:
-            raw_error = getattr(error, "data", error)
-            path = _format_json_path(getattr(raw_error, "path", None))
-            message = _format_error_message(raw_error, error)
+            relevant_error = _most_relevant_error(error)
+            raw_error = getattr(relevant_error, "data", relevant_error)
+            path = _format_json_path(
+                getattr(raw_error, "absolute_path", getattr(raw_error, "path", None))
+            )
+            message = _format_error_message(raw_error, relevant_error)
             schema = getattr(raw_error, "schema", None)
             description = (
                 schema.get("description") if isinstance(schema, dict) else None
@@ -117,6 +121,36 @@ class JsonSchemaValidator:
             )
 
         return messages
+
+
+def _most_relevant_error(error: Any) -> Any:
+    """Return the deepest actionable nested schema error, when available."""
+    context = getattr(error, "context", ())
+    if not context:
+        return error
+
+    candidates = list(_leaf_errors(context))
+    deepest_path_length = max(
+        len(getattr(candidate, "absolute_path", getattr(candidate, "path", ())))
+        for candidate in candidates
+    )
+    deepest_candidates = [
+        candidate
+        for candidate in candidates
+        if len(getattr(candidate, "absolute_path", getattr(candidate, "path", ())))
+        == deepest_path_length
+    ]
+    return best_match(deepest_candidates)
+
+
+def _leaf_errors(errors: Iterable[Any]) -> Iterable[Any]:
+    """Yield leaf errors from a nested JSON Schema error tree."""
+    for error in errors:
+        context = getattr(error, "context", ())
+        if context:
+            yield from _leaf_errors(context)
+        else:
+            yield error
 
 
 def _format_error_message(raw_error: Any, fallback_error: Any) -> str:

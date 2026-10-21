@@ -79,4 +79,22 @@ def test_invalid_spdx_license_id_has_a_concise_message() -> None:
 
     assert not result.is_valid
     assert len(result.messages[0].message) < 512
-    assert result.messages[0].message == repr("NOT-A-LICENSE") + " is not a valid SPDX license ID"
+    assert (
+        result.messages[0].message
+        == repr("NOT-A-LICENSE") + " is not a valid SPDX license ID"
+    )
+
+
+def test_nested_license_error_reports_the_invalid_field() -> None:
+    result = CycloneDXValidator().validate(
+        {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.7",
+            "metadata": {"licenses": [{"license": {"id": "MIT", "url": 123}}]},
+        },
+        "1.7",
+    )
+
+    assert not result.is_valid
+    assert result.messages[0].field_path == "$.metadata.licenses[0].license.url"
+    assert "not of type" in result.messages[0].message

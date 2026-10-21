@@ -68,7 +68,7 @@ def detect_document(data: Any) -> DetectedDocument:
             "spdxVersion",
         )
     )
-    has_cyclonedx_marker = "bomFormat" in data or "specVersion" in data
+    has_cyclonedx_marker = "bomFormat" in data
 
     if has_spdx_marker and has_cyclonedx_marker:
         raise UnsupportedDocumentError(

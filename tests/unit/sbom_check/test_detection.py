@@ -1,6 +1,6 @@
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause
-""""Tests for SBOM format and version detection."""
+""" "Tests for SBOM format and version detection."""
 
 import pytest
 
@@ -18,6 +18,15 @@ def test_detect_spdx_23() -> None:
     assert detected.format is DocumentFormat.SPDX
     assert detected.spec_version == "2.3"
     assert detected.validator_class is ValidationEngine
+
+
+def test_spdx_document_with_spec_version_extension_is_detected_as_spdx() -> None:
+    detected = detect_document(
+        {"spdxVersion": "SPDX-2.3", "specVersion": "extension-version"}
+    )
+
+    assert detected.format is DocumentFormat.SPDX
+    assert detected.spec_version == "2.3"
 
 
 @pytest.mark.parametrize("version", ["1.3", "1.4", "1.5", "1.6", "1.7"])
@@ -46,11 +55,13 @@ def test_reject_missing_format_markers() -> None:
 
 def test_reject_conflicting_format_markers() -> None:
     with pytest.raises(UnsupportedDocumentError, match="conflicting"):
-        detect_document({
-            "spdxVersion": "SPDX-2.3",
-            "bomFormat": "CycloneDX",
-            "specVersion": "1.7",
-        })
+        detect_document(
+            {
+                "spdxVersion": "SPDX-2.3",
+                "bomFormat": "CycloneDX",
+                "specVersion": "1.7",
+            }
+        )
 
 
 @pytest.mark.parametrize("value", [None, [], "json", 42])

@@ -109,33 +109,17 @@ class SbomCheckEngine:
                 sbom_json = f.read()
             return self.validate_json_string(sbom_json, str(file_path))
         except FileNotFoundError:
-            result = SbomCheckResult(
-                overall_valid=False,
-                spdx_valid=False,
-                profile_valid=False,
-                file_path=str(file_path),
-                profile_name=self.config.metadata.name,
-            )
-            result.add_message(
-                ValidationSeverity.ERROR,
+            return self._early_failure_result(
                 f"File not found: {file_path}",
                 rule_id="file_not_found",
-            )
-            return result
-        except (OSError, UnicodeDecodeError) as e:
-            result = SbomCheckResult(
-                overall_valid=False,
-                spdx_valid=False,
-                profile_valid=False,
                 file_path=str(file_path),
-                profile_name=self.config.metadata.name,
             )
-            result.add_message(
-                ValidationSeverity.ERROR,
+        except (OSError, UnicodeDecodeError) as e:
+            return self._early_failure_result(
                 f"Error reading file {file_path}: {e!s}",
                 rule_id="file_read_error",
+                file_path=str(file_path),
             )
-            return result
 
     def validate_json_string(
         self, sbom_json: str, file_path: str | None = None
@@ -152,19 +136,11 @@ class SbomCheckEngine:
         try:
             sbom_data = json.loads(sbom_json)
         except json.JSONDecodeError as e:
-            result = SbomCheckResult(
-                overall_valid=False,
-                spdx_valid=False,
-                profile_valid=False,
-                file_path=file_path,
-                profile_name=self.config.metadata.name,
-            )
-            result.add_message(
-                ValidationSeverity.ERROR,
+            return self._early_failure_result(
                 f"Invalid JSON: {e!s}",
                 rule_id="json_parse_error",
+                file_path=file_path,
             )
-            return result
 
         return self.validate_dict(sbom_data, file_path)
 
@@ -229,6 +205,15 @@ class SbomCheckEngine:
         self, error: UnsupportedDocumentError, file_path: str | None = None
     ) -> SbomCheckResult:
         """Create a structured result for unsupported input."""
+        return self._early_failure_result(
+            str(error), rule_id=error.rule_id, file_path=file_path
+        )
+
+    @staticmethod
+    def _early_failure_result(
+        message: str, *, rule_id: str, file_path: str | None = None
+    ) -> SbomCheckResult:
+        """Create a format-neutral result for failures before validation."""
         return SbomCheckResult(
             overall_valid=False,
             spdx_valid=None,
@@ -238,8 +223,8 @@ class SbomCheckEngine:
             messages=[
                 ValidationMessage(
                     severity=ValidationSeverity.ERROR,
-                    message=str(error),
-                    rule_id=error.rule_id,
+                    message=message,
+                    rule_id=rule_id,
                 )
             ],
             summary=ValidationSummary(errors=1, failed_rules=1),
