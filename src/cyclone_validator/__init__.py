@@ -2,10 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """CycloneDX validation support."""
 
-from cyclone_validator.cli import main
 from cyclone_validator.engine import CycloneDXEngine, CycloneDXValidationEngine
-from cyclone_validator.validators import (
+from cyclone_validator.models import (
     CycloneDXValidationResult,
+    ValidationMessage,
+    ValidationSeverity,
+)
+from cyclone_validator.validators import (
     CycloneDXValidator,
     JsonSchemaValidator,
     SemanticValidator,
@@ -18,5 +21,6 @@ __all__ = [
     "CycloneDXValidator",
     "JsonSchemaValidator",
     "SemanticValidator",
-    "main",
+    "ValidationMessage",
+    "ValidationSeverity",
 ]

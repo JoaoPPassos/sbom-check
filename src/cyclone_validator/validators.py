@@ -8,13 +8,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
 from typing import Any
 
 from cyclonedx.schema import SchemaVersion
 from cyclonedx.validation.json import JsonStrictValidator
 
-from sbom_check.models import ValidationMessage, ValidationSeverity
+from cyclone_validator.models import (
+    CycloneDXValidationResult,
+    ValidationMessage,
+    ValidationSeverity,
+)
 
 _SCHEMA_VERSIONS: dict[str, SchemaVersion] = {
     "1.3": SchemaVersion.V1_3,
@@ -26,14 +29,6 @@ _SCHEMA_VERSIONS: dict[str, SchemaVersion] = {
 
 
 _MAX_ENUM_ERROR_LENGTH = 512
-
-
-@dataclass(frozen=True, slots=True)
-class CycloneDXValidationResult:
-    """Result returned by CycloneDX JSON Schema validation."""
-
-    is_valid: bool
-    messages: list[ValidationMessage]
 
 
 class SemanticValidator:

@@ -13,11 +13,16 @@ from pathlib import Path
 import click
 
 from cyclone_validator.engine import CycloneDXValidationEngine
-from cyclone_validator.validators import CycloneDXValidationResult
-from sbom_check.models import ValidationMessage, ValidationSeverity
+from cyclone_validator.models import (
+    CycloneDXValidationResult,
+    ValidationMessage,
+    ValidationSeverity,
+)
 
 
-def collect_cyclonedx_files(paths: tuple[Path, ...], recursive: bool, pattern: str) -> list[Path]:
+def collect_cyclonedx_files(
+    paths: tuple[Path, ...], recursive: bool, pattern: str
+) -> list[Path]:
     """Collect CycloneDX JSON files from paths."""
     files: list[Path] = []
     for path in paths:
@@ -60,27 +65,38 @@ def _message_dict(message: ValidationMessage) -> dict[str, str | None]:
 
 def output_json(results: list[tuple[Path, CycloneDXValidationResult]]) -> None:
     """Print validation results as JSON."""
-    click.echo(json.dumps({
-        "summary": {
-            "total_files": len(results),
-            "valid_files": sum(1 for _, result in results if result.is_valid),
-            "invalid_files": sum(1 for _, result in results if not result.is_valid),
-        },
-        "results": [
+    click.echo(
+        json.dumps(
             {
-                "file": str(path),
-                "is_valid": result.is_valid,
-                "messages": [_message_dict(message) for message in result.messages],
-            }
-            for path, result in results
-        ],
-    }, indent=2))
+                "summary": {
+                    "total_files": len(results),
+                    "valid_files": sum(1 for _, result in results if result.is_valid),
+                    "invalid_files": sum(
+                        1 for _, result in results if not result.is_valid
+                    ),
+                },
+                "results": [
+                    {
+                        "file": str(path),
+                        "is_valid": result.is_valid,
+                        "messages": [
+                            _message_dict(message) for message in result.messages
+                        ],
+                    }
+                    for path, result in results
+                ],
+            },
+            indent=2,
+        )
+    )
 
 
 def output_text(results: list[tuple[Path, CycloneDXValidationResult]]) -> None:
     """Print validation results as human-readable text."""
     valid_files = sum(1 for _, result in results if result.is_valid)
-    click.echo(f"Validated {len(results)} files: {valid_files} valid, {len(results) - valid_files} invalid")
+    click.echo(
+        f"Validated {len(results)} files: {valid_files} valid, {len(results) - valid_files} invalid"
+    )
     for path, result in results:
         status = "PASSED" if result.is_valid else "FAILED"
         click.echo(f"{path}: {status}")
@@ -101,7 +117,13 @@ def output_text(results: list[tuple[Path, CycloneDXValidationResult]]) -> None:
 @click.option("--recursive", "-r", is_flag=True)
 @click.option("--pattern", default="*.cdx.json")
 @click.option("--jobs", "-j", type=click.IntRange(min=1), default=None)
-def main(paths: tuple[Path, ...], output_format: str, recursive: bool, pattern: str, jobs: int | None) -> None:
+def main(
+    paths: tuple[Path, ...],
+    output_format: str,
+    recursive: bool,
+    pattern: str,
+    jobs: int | None,
+) -> None:
     """Validate CycloneDX JSON documents against their declared schemas."""
     if not (files := collect_cyclonedx_files(paths, recursive, pattern)):
         click.echo("No CycloneDX JSON files found to validate.", err=True)

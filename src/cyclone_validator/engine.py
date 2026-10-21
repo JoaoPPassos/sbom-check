@@ -9,12 +9,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from cyclone_validator.validators import (
+from cyclone_validator.models import (
     CycloneDXValidationResult,
+    ValidationMessage,
+    ValidationSeverity,
+)
+from cyclone_validator.validators import (
     JsonSchemaValidator,
     SemanticValidator,
 )
-from sbom_check.models import ValidationMessage, ValidationSeverity
 from sbom_validator.engine import ValidatorEngine
 
 

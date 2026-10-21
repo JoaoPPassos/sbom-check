@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from cyclone_validator.engine import CycloneDXValidationEngine
 from sbom_check.models import DocumentFormat
 from spdx_validator.engine import ValidationEngine
 
@@ -91,9 +92,7 @@ def detect_document(data: Any) -> DetectedDocument:
 def _detect_spdx(data: dict[str, Any]) -> DetectedDocument:
     version = data.get("spdxVersion")
     spec_version = (
-        version.removeprefix("SPDX-")
-        if isinstance(version, str) and version
-        else None
+        version.removeprefix("SPDX-") if isinstance(version, str) and version else None
     )
     return DetectedDocument(DocumentFormat.SPDX, spec_version, ValidationEngine)
 
@@ -123,9 +122,9 @@ def _detect_cyclonedx(data: dict[str, Any]) -> DetectedDocument:
             rule_id="unsupported_version",
         )
 
-    from cyclone_validator.engine import CycloneDXValidationEngine  # isort: skip  # noqa: PLC0415  # pylint: disable=import-outside-toplevel
-
-    return DetectedDocument(DocumentFormat.CYCLONEDX, version, CycloneDXValidationEngine)
+    return DetectedDocument(
+        DocumentFormat.CYCLONEDX, version, CycloneDXValidationEngine
+    )
 
 
 def _is_older_cyclonedx_version(version: str) -> bool:
