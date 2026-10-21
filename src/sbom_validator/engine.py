@@ -13,7 +13,12 @@ if TYPE_CHECKING:
 
 
 class ValidatorEngine(ABC):
-    """Interface required by every format-specific validation engine."""
+    """Interface required by every format-specific validation engine.
+
+    ``spec_version`` is a bare version identifier (for example, ``"2.3"``
+    for SPDX or ``"1.7"`` for CycloneDX). Implementations must reject a
+    requested version that does not match the version declared by ``document``.
+    """
 
     @abstractmethod
     def __init__(
@@ -26,7 +31,13 @@ class ValidatorEngine(ABC):
 
     @abstractmethod
     def validate(self, document: dict[str, Any], spec_version: str) -> Any:
-        """Validate a parsed SBOM document against its declared schema."""
+        """Validate a parsed SBOM document against its declared schema.
+
+        Args:
+            document: Parsed SBOM document that declares its specification version.
+            spec_version: Bare requested version (for example, ``"2.3"`` or
+                ``"1.7"``), which must match the document declaration.
+        """
 
     @abstractmethod
     def validate_json_string(self, json_string: str) -> Any:

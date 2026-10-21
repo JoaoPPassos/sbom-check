@@ -51,10 +51,10 @@ class ValidationEngine(ValidatorEngine):
             self.semantic_validator = SemanticValidator()
 
     def validate(
-        self, document: dict[str, Any], spec_version: str = "SPDX-2.3"
+        self, document: dict[str, Any], spec_version: str = "2.3"
     ) -> ValidationResult:
-        """Validate a parsed SPDX document through the engine pipeline."""
-        if document.get("spdxVersion") != spec_version:
+        """Validate a parsed SPDX document using a bare SPDX version identifier."""
+        if document.get("spdxVersion") != f"SPDX-{spec_version}":
             return ValidationResult(
                 is_valid=False,
                 messages=[

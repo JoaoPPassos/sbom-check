@@ -89,10 +89,24 @@ class TestValidationEngine:
     ) -> None:
         document = json.loads(minimal_spdx_json)
 
-        result = ValidationEngine().validate(document, spec_version="SPDX-2.2")
+        result = ValidationEngine().validate(document, spec_version="2.2")
 
         assert not result.is_valid
         assert result.messages[0].rule_id == "spec_version_mismatch"
+
+    def test_validate_accepts_bare_spec_version(
+        self, minimal_spdx_json: str, mock_validation_result: ValidationResult
+    ) -> None:
+        document = json.loads(minimal_spdx_json)
+        engine = ValidationEngine()
+
+        with patch.object(
+            engine, "validate_dict", return_value=mock_validation_result
+        ) as validate_dict:
+            result = engine.validate(document, spec_version="2.3")
+
+        assert result is mock_validation_result
+        validate_dict.assert_called_once_with(document)
 
     def test_validate_json_string_invalid_json(self) -> None:
         """Test validation of invalid JSON string."""

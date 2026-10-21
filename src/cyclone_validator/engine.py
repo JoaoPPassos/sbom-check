@@ -46,7 +46,22 @@ class CycloneDXValidationEngine(ValidatorEngine):
     def validate(
         self, document: dict[str, Any], spec_version: str
     ) -> CycloneDXValidationResult:
-        """Validate a parsed CycloneDX document."""
+        """Validate a parsed CycloneDX document using a bare version identifier."""
+        if document.get("specVersion") != spec_version:
+            return CycloneDXValidationResult(
+                is_valid=False,
+                messages=[
+                    ValidationMessage(
+                        severity=ValidationSeverity.ERROR,
+                        message=(
+                            "Document CycloneDX version does not match the requested "
+                            f"version {spec_version}"
+                        ),
+                        rule_id="spec_version_mismatch",
+                    )
+                ],
+            )
+
         messages: list[ValidationMessage] = []
         schema_valid = True
         semantic_valid = True

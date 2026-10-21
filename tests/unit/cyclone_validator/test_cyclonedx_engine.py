@@ -38,6 +38,29 @@ def test_schema_validators_are_cached_by_spec_version() -> None:
     assert strict_validator.call_count == 2
 
 
+def test_schema_validation_uses_the_public_strict_validator_api() -> None:
+    class PublicOnlyStrictValidator:
+        def validate_str(self, document: str, *, all_errors: bool):
+            assert document
+            assert all_errors
+            return []
+
+    with patch(
+        "cyclone_validator.validators.JsonStrictValidator",
+        return_value=PublicOnlyStrictValidator(),
+    ):
+        result = JsonSchemaValidator().validate(_valid_document(), "1.7")
+
+    assert result.is_valid
+
+
+def test_validate_rejects_mismatched_spec_version() -> None:
+    result = CycloneDXValidationEngine().validate(_valid_document(), "1.6")
+
+    assert not result.is_valid
+    assert result.messages[0].rule_id == "spec_version_mismatch"
+
+
 def test_schema_only_configuration_does_not_run_semantic_validation() -> None:
     engine = CycloneDXValidationEngine(
         enable_schema_validation=True,
