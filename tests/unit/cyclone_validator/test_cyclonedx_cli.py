@@ -44,6 +44,15 @@ def test_help_describes_cyclonedx_validation():
     assert "Validate CycloneDX JSON documents" in result.output
     assert "--output-format" in result.output
     assert "--recursive" in result.output
+    assert "Output format" in result.output
+    assert "Number of parallel jobs" in result.output
+
+
+def test_version_is_available():
+    result = invoke_cli("--version")
+
+    assert result.exit_code == 0
+    assert "cyclonedx-validate" in result.output
 
 
 def test_valid_document_passes_schema_validation():

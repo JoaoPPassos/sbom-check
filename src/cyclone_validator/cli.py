@@ -15,6 +15,11 @@ import click
 
 from cyclone_validator.engine import CycloneDXValidationEngine
 
+try:
+    from sbom_check._version import version as __version__
+except ImportError:
+    __version__ = "dev"
+
 if TYPE_CHECKING:
     from cyclone_validator.models import CycloneDXValidationResult, ValidationMessage
 
@@ -112,10 +117,26 @@ def output_text(results: list[tuple[Path, CycloneDXValidationResult]]) -> None:
     required=True,
     type=click.Path(exists=True, path_type=Path),  # type: ignore[type-var]
 )
-@click.option("--output-format", type=click.Choice(["text", "json"]), default="text")
-@click.option("--recursive", "-r", is_flag=True)
-@click.option("--pattern", default="*.cdx.json")
-@click.option("--jobs", "-j", type=click.IntRange(min=1), default=None)
+@click.option(
+    "--output-format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format (default: text)",
+)
+@click.option("--recursive", "-r", is_flag=True, help="Recursively scan directories")
+@click.option(
+    "--pattern",
+    default="*.cdx.json",
+    help="File pattern to match when scanning directories (default: *.cdx.json)",
+)
+@click.option(
+    "--jobs",
+    "-j",
+    type=click.IntRange(min=1),
+    default=None,
+    help="Number of parallel jobs (default: number of CPU cores)",
+)
+@click.version_option(version=__version__, prog_name="cyclonedx-validate")
 def main(
     paths: tuple[Path, ...],
     output_format: str,

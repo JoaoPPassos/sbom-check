@@ -289,6 +289,9 @@ def test_cli_validate_valid_file(mock_engine_class, tmp_path):
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Test Profile"
+    mock_result.document_format = "SPDX"
+    mock_result.spec_version = "2.3"
+    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -336,6 +339,9 @@ def test_cli_validate_with_json_output(mock_engine_class, tmp_path):
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Test Profile"
+    mock_result.document_format = "SPDX"
+    mock_result.spec_version = "2.3"
+    mock_result.core_valid = True
     mock_result.file_path = "test.json"
     mock_result.messages = []
     mock_result.summary.errors = 0
@@ -380,6 +386,9 @@ def test_cli_validate_with_custom_profile(mock_engine_class, tmp_path):
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Basic SPDX 2.3 Compliance"
+    mock_result.document_format = "SPDX"
+    mock_result.spec_version = "2.3"
+    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -418,6 +427,9 @@ def test_cli_validate_with_custom_config(mock_engine_class, tmp_path):
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Custom Config"
+    mock_result.document_format = "SPDX"
+    mock_result.spec_version = "2.3"
+    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -487,6 +499,9 @@ def test_cli_validate_multiple_files(mock_engine_class, tmp_path):
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Test Profile"
+    mock_result.document_format = "SPDX"
+    mock_result.spec_version = "2.3"
+    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -583,6 +598,9 @@ def test_cli_validate_directory_non_recursive(tmp_path):
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
+        mock_result.document_format = "SPDX"
+        mock_result.spec_version = "2.3"
+        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -636,6 +654,9 @@ def test_cli_validate_directory_recursive(mock_engine_class, tmp_path):
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Test Profile"
+    mock_result.document_format = "SPDX"
+    mock_result.spec_version = "2.3"
+    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -695,6 +716,9 @@ def test_cli_validate_custom_pattern(tmp_path):
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
+        mock_result.document_format = "SPDX"
+        mock_result.spec_version = "2.3"
+        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -744,6 +768,9 @@ def test_cli_validate_mixed_paths(tmp_path):
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
+        mock_result.document_format = "SPDX"
+        mock_result.spec_version = "2.3"
+        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -808,6 +835,9 @@ def test_cli_validate_parallel_processing(tmp_path):
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
+        mock_result.document_format = "SPDX"
+        mock_result.spec_version = "2.3"
+        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -854,6 +884,9 @@ def test_cli_multiple_files_json_output(tmp_path):
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
+        mock_result.document_format = "SPDX"
+        mock_result.spec_version = "2.3"
+        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -965,6 +998,9 @@ def test_cli_backward_compatibility_single_file(tmp_path):
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
+        mock_result.document_format = "SPDX"
+        mock_result.spec_version = "2.3"
+        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -985,7 +1021,7 @@ def test_cli_backward_compatibility_single_file(tmp_path):
         assert "Validated 1 files:" not in result.output
 
 
-def _format_result(document_format: str, spec_version: str) -> SimpleNamespace:
+def _format_result(document_format: str, spec_version: str | None) -> SimpleNamespace:
     """Create a minimal result for output rendering tests."""
     return SimpleNamespace(
         overall_valid=True,
@@ -1019,8 +1055,26 @@ def test_text_output_uses_detected_format_and_marks_profile_not_applicable():
         str(call.args[0]) for call in mocked_console.print.call_args_list
     )
     assert "CycloneDX 1.7 Validation: PASSED" in output
+    assert "Profile: N/A" in output
     assert "Profile Validation: NOT APPLICABLE" in output
     assert "SPDX 2.3 Validation" not in output
+
+
+def test_text_output_uses_core_label_for_unknown_documents():
+    """Unknown formats should use a format-neutral core validation label."""
+    result = _format_result("unknown", None)
+    result.overall_valid = False
+    result.spdx_valid = False
+
+    with patch("sbom_check.cli.console") as mocked_console:
+        _print_text_result(result, "input.json")
+
+    output = "\n".join(
+        str(call.args[0]) for call in mocked_console.print.call_args_list
+    )
+    assert "Core Validation: FAILED" in output
+    assert "unknown Validation" not in output
+    assert "Profile: N/A" in output
 
 
 def test_json_output_includes_detected_format_and_specification():

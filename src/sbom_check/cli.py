@@ -151,17 +151,7 @@ def validate_single_file(
         _initialize_worker(_load_config(profile, config_path))
         engine = _worker_state["engine"]
     result = engine.validate_file(file_path)
-    _ensure_result_document_metadata(result)
     return file_path, result
-
-
-def _ensure_result_document_metadata(result: Any) -> None:
-    """Fill metadata defaults without overwriting engine-detected values."""
-    if not isinstance(getattr(result, "document_format", None), str):
-        result.document_format = "unknown"
-    spec_version = getattr(result, "spec_version", None)
-    if spec_version is not None and not isinstance(spec_version, str):
-        result.spec_version = None
 
 
 def output_text_multiple(results: list[tuple[Path, Any]]) -> None:
@@ -366,7 +356,6 @@ def main(  # noqa: PLR0917,RUF100
             # Detection and validator selection are owned by SbomCheckEngine.
             engine = SbomCheckEngine(sbom_config)
             result = engine.validate_file(file_path)
-            _ensure_result_document_metadata(result)
             results.append((file_path, result))
 
             if not result.overall_valid:
@@ -495,7 +484,13 @@ def _result_profile_status(result: Any) -> ProfileStatus:
 def _print_text_result(result: Any, file_path: str) -> None:
     """Print validation result in text format."""
     console.print(f"\n[bold]Validation Results for: {file_path}[/bold]")
-    console.print(f"Profile: {result.profile_name or 'Unknown'}")
+    profile_status = _result_profile_status(result)
+    profile_name = (
+        result.profile_name
+        if profile_status is not ProfileStatus.NOT_APPLICABLE
+        else "N/A"
+    )
+    console.print(f"Profile: {profile_name or 'Unknown'}")
 
     # Overall status
     if result.overall_valid:
@@ -506,13 +501,16 @@ def _print_text_result(result: Any, file_path: str) -> None:
     format_name = getattr(result, "document_format", "SPDX")
     format_name = getattr(format_name, "value", format_name)
     specification = f" {result.spec_version}" if result.spec_version else ""
-    core_label = f"{format_name}{specification} Validation"
+    core_label = (
+        "Core Validation"
+        if format_name == "unknown"
+        else f"{format_name}{specification} Validation"
+    )
     if _result_core_valid(result):
         console.print(f"[green]✅ {core_label}: PASSED[/green]")
     else:
         console.print(f"[red]❌ {core_label}: FAILED[/red]")
 
-    profile_status = _result_profile_status(result)
     if profile_status is ProfileStatus.NOT_APPLICABLE:
         console.print("[blue]Info: Profile Validation: NOT APPLICABLE[/blue]")
     elif profile_status is ProfileStatus.PASSED:
