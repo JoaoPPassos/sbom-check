@@ -33,8 +33,8 @@ dependencies = [
     "jinja2>=3.1.0",
     # spdx-validator dependencies
     "jsonschema>=4.25.1",
-    #cycloneDX dependencies
-    "cyclonedx-python-lib[json-validation]==11.12.0",
+    # CycloneDX dependencies
+    "cyclonedx-python-lib[json-validation]>=11.12,<12",
 ]
 
 [project.scripts]
