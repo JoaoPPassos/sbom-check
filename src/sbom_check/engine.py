@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from warnings import warn
 
 from sbom_check.config.loader import ConfigLoader
 from sbom_check.detection import UnsupportedDocumentError, detect_document
@@ -52,6 +53,26 @@ class SbomCheckEngine:
         # Keep an explicitly supplied validator ready for use. Otherwise the
         # document detector selects the appropriate validator per document.
         self.engine = (validator_class or ValidationEngine)()
+
+    @property
+    def spdx_engine(self) -> Any:
+        """Deprecated alias for the configured core validator engine."""
+        warn(
+            "spdx_engine is deprecated; use engine instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.engine
+
+    @spdx_engine.setter
+    def spdx_engine(self, value: Any) -> None:
+        """Set the configured core validator through its deprecated alias."""
+        warn(
+            "spdx_engine is deprecated; use engine instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.engine = value
 
     def validate_file(self, file_path: Path | str) -> SbomCheckResult:
         """Validate an SBOM document from file.

@@ -7,6 +7,8 @@ import json
 from copy import deepcopy
 from unittest.mock import Mock, patch
 
+import pytest
+
 from cyclone_validator.engine import CycloneDXValidationEngine
 from sbom_check.config.loader import ConfigLoader
 from sbom_check.engine import SbomCheckEngine
@@ -19,6 +21,14 @@ def test_engine_initialization():
     engine = SbomCheckEngine()
     assert engine is not None
     assert engine.config is not None
+
+
+def test_deprecated_spdx_engine_alias_returns_core_engine():
+    """The former public engine attribute remains available during migration."""
+    engine = SbomCheckEngine()
+
+    with pytest.warns(DeprecationWarning, match="spdx_engine"):
+        assert engine.spdx_engine is engine.engine
 
 
 def test_engine_initialization_with_config():

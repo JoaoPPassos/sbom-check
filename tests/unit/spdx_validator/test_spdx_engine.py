@@ -96,6 +96,22 @@ class TestValidationEngine:
         assert "Invalid JSON" in result.messages[0].message
         assert result.messages[0].rule_id == "json_parse_error"
 
+    def test_legacy_json_keyword_is_supported_with_warning(self) -> None:
+        engine = ValidationEngine()
+
+        with pytest.warns(DeprecationWarning, match="spdx_json"):
+            result = engine.validate_json_string(spdx_json="invalid json {")
+
+        assert not result.is_valid
+
+    def test_legacy_dict_keyword_is_supported_with_warning(self) -> None:
+        engine = ValidationEngine()
+
+        with pytest.warns(DeprecationWarning, match="spdx_data"):
+            result = engine.validate_dict(spdx_data={"test": "data"})
+
+        assert not result.is_valid
+
     @patch("spdx_validator.validators.JsonSchemaValidator.validate")
     @patch("spdx_validator.validators.SemanticValidator.validate")
     def test_validate_json_string_success(
