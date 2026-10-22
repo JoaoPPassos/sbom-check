@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -16,8 +17,8 @@ import click
 from cyclone_validator.engine import CycloneDXValidationEngine
 
 try:
-    from sbom_check._version import version as __version__
-except ImportError:
+    __version__ = version("sbom-check")
+except PackageNotFoundError:
     __version__ = "dev"
 
 if TYPE_CHECKING:

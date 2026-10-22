@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 from sbom_check.models import DocumentFormat
@@ -93,7 +92,11 @@ def _detect_spdx(data: dict[str, Any]) -> DetectedDocument:
     spec_version = (
         version.removeprefix("SPDX-") if isinstance(version, str) and version else None
     )
-    validator_class = import_module("spdx_validator.engine").ValidationEngine
+    # pylint: disable=import-outside-toplevel
+    from spdx_validator.engine import ValidationEngine  # noqa: PLC0415
+    # pylint: enable=import-outside-toplevel
+
+    validator_class = ValidationEngine
     return DetectedDocument(DocumentFormat.SPDX, spec_version, validator_class)
 
 
@@ -122,9 +125,11 @@ def _detect_cyclonedx(data: dict[str, Any]) -> DetectedDocument:
             rule_id="unsupported_version",
         )
 
-    validator_class = import_module(
-        "cyclone_validator.engine"
-    ).CycloneDXValidationEngine
+    # pylint: disable=import-outside-toplevel
+    from cyclone_validator.engine import CycloneDXValidationEngine  # noqa: PLC0415
+    # pylint: enable=import-outside-toplevel
+
+    validator_class = CycloneDXValidationEngine
     return DetectedDocument(DocumentFormat.CYCLONEDX, version, validator_class)
 
 
