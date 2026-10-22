@@ -75,6 +75,8 @@ class JsonSchemaValidator:
 
         validator = self._get_strict_validator(schema_version)
         try:
+            # JsonStrictValidator exposes string-based validation publicly; serialize
+            # here rather than relying on its private validator implementation.
             errors = validator.validate_str(json.dumps(document), all_errors=True)
         except (TypeError, ValueError) as error:
             return CycloneDXValidationResult(
@@ -83,7 +85,7 @@ class JsonSchemaValidator:
                     ValidationMessage(
                         severity=ValidationSeverity.ERROR,
                         message=f"Document is not JSON serializable: {error!s}",
-                        rule_id="cyclonedx_schema_error",
+                        rule_id="json_serialization_error",
                         field_path="$",
                     )
                 ],

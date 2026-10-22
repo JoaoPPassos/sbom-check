@@ -53,7 +53,8 @@ class ValidationEngine(ValidatorEngine):
     def validate(
         self, document: dict[str, Any], spec_version: str = "2.3"
     ) -> ValidationResult:
-        """Validate a parsed SPDX document using a bare SPDX version identifier."""
+        """Validate a parsed SPDX document using a bare or prefixed version identifier."""
+        spec_version = spec_version.removeprefix("SPDX-")
         if document.get("spdxVersion") != f"SPDX-{spec_version}":
             return ValidationResult(
                 is_valid=False,

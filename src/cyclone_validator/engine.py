@@ -145,11 +145,9 @@ class CycloneDXValidationEngine(ValidatorEngine):
                 ],
             )
 
-        return self.validate_dict(document, spec_version)
+        return self.validate_dict(document)
 
-    def validate_dict(
-        self, document: object, spec_version: str | None = None
-    ) -> CycloneDXValidationResult:
+    def validate_dict(self, document: object) -> CycloneDXValidationResult:
         """Validate a CycloneDX document from a dictionary."""
         if not isinstance(document, dict):
             return CycloneDXValidationResult(
@@ -162,7 +160,7 @@ class CycloneDXValidationEngine(ValidatorEngine):
                     )
                 ],
             )
-        version = spec_version or document.get("specVersion")
+        version = document.get("specVersion")
         if not isinstance(version, str):
             return CycloneDXValidationResult(
                 is_valid=False,

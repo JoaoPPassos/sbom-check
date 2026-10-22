@@ -146,7 +146,7 @@ def test_dict_validation_returns_error_for_non_serializable_input() -> None:
 
     assert not result.is_valid
     assert any(
-        message.rule_id == "cyclonedx_schema_error" for message in result.messages
+        message.rule_id == "json_serialization_error" for message in result.messages
     )
 
 

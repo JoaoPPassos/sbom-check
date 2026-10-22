@@ -23,6 +23,15 @@ from sbom_check.cli import (
 )
 
 
+def _mock_spdx_result() -> Mock:
+    """Create a passing SPDX result mock with detected-format metadata."""
+    result = Mock()
+    result.document_format = "SPDX"
+    result.spec_version = "2.3"
+    result.core_valid = True
+    return result
+
+
 def test_worker_reuses_its_configured_engine() -> None:
     sbom_cli._worker_state.clear()
     try:
@@ -284,14 +293,11 @@ def test_cli_validate_file_not_found():
 def test_cli_validate_valid_file(mock_engine_class, tmp_path):
     """Test CLI with valid SPDX file."""
     # Mock the engine to return a quick result
-    mock_result = Mock()
+    mock_result = _mock_spdx_result()
     mock_result.overall_valid = True
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Test Profile"
-    mock_result.document_format = "SPDX"
-    mock_result.spec_version = "2.3"
-    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -334,14 +340,11 @@ def test_cli_validate_valid_file(mock_engine_class, tmp_path):
 def test_cli_validate_with_json_output(mock_engine_class, tmp_path):
     """Test CLI with JSON output format."""
     # Mock the engine to return a quick result
-    mock_result = Mock()
+    mock_result = _mock_spdx_result()
     mock_result.overall_valid = True
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Test Profile"
-    mock_result.document_format = "SPDX"
-    mock_result.spec_version = "2.3"
-    mock_result.core_valid = True
     mock_result.file_path = "test.json"
     mock_result.messages = []
     mock_result.summary.errors = 0
@@ -381,14 +384,11 @@ def test_cli_validate_with_json_output(mock_engine_class, tmp_path):
 def test_cli_validate_with_custom_profile(mock_engine_class, tmp_path):
     """Test CLI with custom profile."""
     # Mock the engine to return a quick result
-    mock_result = Mock()
+    mock_result = _mock_spdx_result()
     mock_result.overall_valid = True
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Basic SPDX 2.3 Compliance"
-    mock_result.document_format = "SPDX"
-    mock_result.spec_version = "2.3"
-    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -422,14 +422,11 @@ def test_cli_validate_with_custom_profile(mock_engine_class, tmp_path):
 def test_cli_validate_with_custom_config(mock_engine_class, tmp_path):
     """Test CLI with custom config file."""
     # Mock the engine to return a quick result
-    mock_result = Mock()
+    mock_result = _mock_spdx_result()
     mock_result.overall_valid = True
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Custom Config"
-    mock_result.document_format = "SPDX"
-    mock_result.spec_version = "2.3"
-    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -494,14 +491,11 @@ custom_rules: []
 def test_cli_validate_multiple_files(mock_engine_class, tmp_path):
     """Test CLI with multiple files."""
     # Mock the engine to return a quick result
-    mock_result = Mock()
+    mock_result = _mock_spdx_result()
     mock_result.overall_valid = True
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Test Profile"
-    mock_result.document_format = "SPDX"
-    mock_result.spec_version = "2.3"
-    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -593,14 +587,11 @@ def test_cli_validate_directory_non_recursive(tmp_path):
     sub_file.write_text(json.dumps(spdx_doc))
 
     with patch("sbom_check.cli.SbomCheckEngine") as mock_engine_class:
-        mock_result = Mock()
+        mock_result = _mock_spdx_result()
         mock_result.overall_valid = True
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
-        mock_result.document_format = "SPDX"
-        mock_result.spec_version = "2.3"
-        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -649,14 +640,11 @@ def test_cli_validate_directory_recursive(mock_engine_class, tmp_path):
     nested_file = nested_dir / "nested.spdx.json"
     nested_file.write_text(json.dumps(spdx_doc))
 
-    mock_result = Mock()
+    mock_result = _mock_spdx_result()
     mock_result.overall_valid = True
     mock_result.spdx_valid = True
     mock_result.profile_valid = True
     mock_result.profile_name = "Test Profile"
-    mock_result.document_format = "SPDX"
-    mock_result.spec_version = "2.3"
-    mock_result.core_valid = True
     mock_result.messages = []
     mock_result.summary.errors = 0
     mock_result.summary.warnings = 0
@@ -711,14 +699,11 @@ def test_cli_validate_custom_pattern(tmp_path):
     txt_file.write_text("not json")
 
     with patch("sbom_check.cli.SbomCheckEngine") as mock_engine_class:
-        mock_result = Mock()
+        mock_result = _mock_spdx_result()
         mock_result.overall_valid = True
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
-        mock_result.document_format = "SPDX"
-        mock_result.spec_version = "2.3"
-        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -763,14 +748,11 @@ def test_cli_validate_mixed_paths(tmp_path):
     dir_file.write_text(json.dumps(spdx_doc))
 
     with patch("sbom_check.cli.SbomCheckEngine") as mock_engine_class:
-        mock_result = Mock()
+        mock_result = _mock_spdx_result()
         mock_result.overall_valid = True
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
-        mock_result.document_format = "SPDX"
-        mock_result.spec_version = "2.3"
-        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -830,14 +812,11 @@ def test_cli_validate_parallel_processing(tmp_path):
         files.append(file_path)
 
     with patch("sbom_check.cli.validate_single_file") as mock_validate:
-        mock_result = Mock()
+        mock_result = _mock_spdx_result()
         mock_result.overall_valid = True
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
-        mock_result.document_format = "SPDX"
-        mock_result.spec_version = "2.3"
-        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -879,14 +858,11 @@ def test_cli_multiple_files_json_output(tmp_path):
     file2.write_text(json.dumps(spdx_doc))
 
     with patch("sbom_check.cli.SbomCheckEngine") as mock_engine_class:
-        mock_result = Mock()
+        mock_result = _mock_spdx_result()
         mock_result.overall_valid = True
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
-        mock_result.document_format = "SPDX"
-        mock_result.spec_version = "2.3"
-        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
@@ -993,14 +969,11 @@ def test_cli_backward_compatibility_single_file(tmp_path):
     test_file.write_text(json.dumps(spdx_doc))
 
     with patch("sbom_check.cli.SbomCheckEngine") as mock_engine_class:
-        mock_result = Mock()
+        mock_result = _mock_spdx_result()
         mock_result.overall_valid = True
         mock_result.spdx_valid = True
         mock_result.profile_valid = True
         mock_result.profile_name = "Test Profile"
-        mock_result.document_format = "SPDX"
-        mock_result.spec_version = "2.3"
-        mock_result.core_valid = True
         mock_result.messages = []
         mock_result.summary.errors = 0
         mock_result.summary.warnings = 0
