@@ -70,28 +70,28 @@ class SbomCheckEngine:
 
     @engine.setter
     def engine(self, value: ValidatorEngine) -> None:
-        """Override the configured core validator instance."""
+        """Override the core validator instance used for every document format."""
         self._engine_override = value
 
     @property
     def spdx_engine(self) -> Any:
-        """Deprecated alias for the configured core validator engine."""
+        """Deprecated alias for the configured SPDX validator engine."""
         warn(
             "spdx_engine is deprecated; use engine instead",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.engine
+        return self._engine_override or self._get_engine(ValidationEngine)
 
     @spdx_engine.setter
     def spdx_engine(self, value: Any) -> None:
-        """Set the configured core validator through its deprecated alias."""
+        """Set the SPDX validator through this deprecated alias."""
         warn(
             "spdx_engine is deprecated; use engine instead",
             DeprecationWarning,
             stacklevel=2,
         )
-        self.engine = value
+        self._engines[ValidationEngine] = value
 
     def validate_file(self, file_path: Path | str) -> SbomCheckResult:
         """Validate an SBOM document from file.

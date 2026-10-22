@@ -49,10 +49,32 @@ def test_engine_override_is_used_in_auto_detect_mode(sample_valid_spdx_document)
     replacement_engine.validate_dict.assert_called_once_with(sample_valid_spdx_document)
 
 
+def test_deprecated_spdx_engine_override_does_not_replace_cyclonedx_validator():
+    """The deprecated SPDX-specific override leaves CycloneDX dispatch intact."""
+    spdx_engine = ValidationEngine()
+    engine = SbomCheckEngine()
+
+    with pytest.warns(DeprecationWarning, match="spdx_engine"):
+        engine.spdx_engine = spdx_engine
+
+    with patch.object(
+        CycloneDXValidationEngine,
+        "validate_dict",
+        autospec=True,
+        side_effect=CycloneDXValidationEngine.validate_dict,
+    ) as validate_cyclonedx:
+        result = engine.validate_dict({"bomFormat": "CycloneDX", "specVersion": "1.7"})
+
+    validate_cyclonedx.assert_called_once()
+    assert result.overall_valid
+    assert result.core_valid
+    assert result.document_format == "CycloneDX"
+
+
 def test_deprecated_spdx_engine_override_is_used_in_auto_detect_mode(
     sample_valid_spdx_document,
 ):
-    """The deprecated setter continues to override auto-detected validators."""
+    """The deprecated setter overrides the auto-detected SPDX validator."""
     replacement_engine = Mock()
     replacement_engine.validate_dict.return_value = Mock(is_valid=True, messages=[])
     engine = SbomCheckEngine()
